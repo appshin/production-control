@@ -150,9 +150,15 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
+        .input-group input:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
         .button-group {
             display: flex;
             gap: 8px;
+            margin-bottom: 8px;
         }
 
         .button-group button {
@@ -179,11 +185,24 @@
         .btn-camera {
             background: #0d6efd;
             color: white;
-            flex: 0.4;
+            flex: 0.35;
+            padding: 10px;
         }
 
         .btn-camera:hover {
             background: #0b5ed7;
+        }
+
+        .btn-clear {
+            background: #dc3545;
+            color: white;
+            flex: 0.35;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        .btn-clear:hover {
+            background: #c82333;
         }
 
         .status-box {
@@ -415,6 +434,10 @@
             .form-row {
                 grid-template-columns: 1fr;
             }
+
+            .button-group {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -461,10 +484,11 @@
                     <h3>🏢 설비 정보</h3>
                     <div class="input-group">
                         <label>설비 ID</label>
-                        <div class="button-group">
-                            <input type="text" id="equipmentInput" placeholder="설비 ID">
-                            <button class="btn-camera" onclick="startEquipmentScanner()">📷</button>
-                        </div>
+                        <input type="text" id="equipmentInput" placeholder="설비 ID 입력 또는 스캔">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-camera" onclick="startEquipmentScanner()">📷 QR 스캔</button>
+                        <button class="btn-clear" onclick="clearEquipment()">✕ 초기화</button>
                     </div>
                     <div id="equipmentStatus"></div>
                 </div>
@@ -473,10 +497,11 @@
                     <h3>📋 작업표준서</h3>
                     <div class="input-group">
                         <label>작업표준서 ID</label>
-                        <div class="button-group">
-                            <input type="text" id="standardInput" placeholder="표준서 ID">
-                            <button class="btn-camera" onclick="startStandardScanner()">📷</button>
-                        </div>
+                        <input type="text" id="standardInput" placeholder="표준서 ID 입력 또는 스캔">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-camera" onclick="startStandardScanner()">📷 QR 스캔</button>
+                        <button class="btn-clear" onclick="clearStandard()">✕ 초기화</button>
                     </div>
                     <div id="standardStatus"></div>
                 </div>
@@ -560,6 +585,7 @@
         <div class="modal-content">
             <div class="modal-header">📷 QR 코드 스캔</div>
             <div class="modal-body">
+                <p style="text-align: center; color: #666; margin-bottom: 15px;">QR 코드를 카메라에 비춰주세요</p>
                 <video id="scanner" autoplay playsinline></video>
                 <canvas id="canvas" style="display:none;"></canvas>
             </div>
@@ -576,8 +602,8 @@
             <div class="modal-body">
                 <div class="popup-message">⚠️ 품질부서에서 초품검사를 받으세요!</div>
                 <div style="background:#f5f5f5; padding:15px; border-radius:8px;">
-                    <div><strong>작업자:</strong> <span id="popWorker"></span></div>
-                    <div><strong>설비:</strong> <span id="popEquipment"></span></div>
+                    <div style="margin-bottom: 8px;"><strong>작업자:</strong> <span id="popWorker"></span></div>
+                    <div style="margin-bottom: 8px;"><strong>설비:</strong> <span id="popEquipment"></span></div>
                     <div><strong>표준서:</strong> <span id="popStandard"></span></div>
                 </div>
             </div>
@@ -741,12 +767,12 @@
             } else if (scanType === 'equipment') {
                 state.equipment = data;
                 document.getElementById('equipmentInput').value = data;
-                document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 인식됨</div>';
+                document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 설비 인식됨</div>';
                 checkShowBtn();
             } else if (scanType === 'standard') {
                 state.standard = data;
                 document.getElementById('standardInput').value = data;
-                document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 인식됨</div>';
+                document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 표준서 인식됨</div>';
                 checkShowBtn();
             }
         }
@@ -756,9 +782,46 @@
             document.getElementById('scannerModal').classList.remove('active');
         }
 
+        // 직접 입력 처리 - 설비
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('equipmentInput').addEventListener('change', function(e) {
+                const value = e.target.value.trim();
+                if (value) {
+                    state.equipment = value;
+                    document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 설비 인식됨</div>';
+                    checkShowBtn();
+                }
+            });
+
+            document.getElementById('standardInput').addEventListener('change', function(e) {
+                const value = e.target.value.trim();
+                if (value) {
+                    state.standard = value;
+                    document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 표준서 인식됨</div>';
+                    checkShowBtn();
+                }
+            });
+        });
+
+        function clearEquipment() {
+            state.equipment = null;
+            document.getElementById('equipmentInput').value = '';
+            document.getElementById('equipmentStatus').innerHTML = '';
+            checkShowBtn();
+        }
+
+        function clearStandard() {
+            state.standard = null;
+            document.getElementById('standardInput').value = '';
+            document.getElementById('standardStatus').innerHTML = '';
+            checkShowBtn();
+        }
+
         function checkShowBtn() {
             if (state.worker && state.equipment && state.standard) {
                 document.getElementById('startBtnContainer').style.display = 'block';
+            } else {
+                document.getElementById('startBtnContainer').style.display = 'none';
             }
         }
 
