@@ -6,6 +6,7 @@
     <title>생산 관리 대시보드</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -111,7 +112,10 @@
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
         .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        .form-group button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .form-group button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .form-group button.scan-btn { background: #0d6efd; }
+        .form-group button.clear-btn { background: #dc3545; }
+        .form-group button:hover { opacity: 0.9; }
         .error { color: red; padding: 10px; background: #ffebee; border-radius: 4px; margin: 10px 0; }
         .success { color: green; padding: 10px; background: #e8f5e9; border-radius: 4px; margin: 10px 0; }
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -121,10 +125,35 @@
         .tab-content.active { display: block; }
         .download-btn { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; }
         .download-btn:hover { background: #218838; }
+        
+        .scanner-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .scanner-modal.show { display: flex; }
+        .scanner-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .scanner-content h3 { margin-bottom: 15px; }
+        #scanner { width: 100%; max-width: 400px; margin: 15px auto; display: block; }
+        .scanner-close { margin-top: 15px; padding: 10px 20px; background: #dc3545; color: white; border: none; cursor: pointer; border-radius: 4px; }
     </style>
 </head>
 <body>
-    <div class="settings-overlay" id="settingsOverlay"></div>
+    <div class="settings-overlay" id="settingsOverlay" onclick="closeSettings()"></div>
     <div class="settings-modal" id="settingsModal">
         <button class="close-btn" onclick="closeSettings()">✕</button>
         <h2>⚙️ Supabase 설정</h2>
@@ -141,6 +170,15 @@ CREATE TABLE jobs (id BIGINT PRIMARY KEY, equipment TEXT, product TEXT, process 
         <input type="text" id="keyInput" placeholder="Anon Key (sb_public_...)">
         <button onclick="saveSettings()">저장</button>
         <div id="settingsMessage"></div>
+    </div>
+
+    <div class="scanner-modal" id="scannerModal">
+        <div class="scanner-content">
+            <h3 id="scannerTitle">QR 코드 스캔</h3>
+            <video id="scanner" autoplay playsinline></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+            <button class="scanner-close" onclick="closeScanner()">닫기</button>
+        </div>
     </div>
 
     <div class="container">
@@ -167,26 +205,47 @@ CREATE TABLE jobs (id BIGINT PRIMARY KEY, equipment TEXT, product TEXT, process 
             <div id="setup-tab" class="tab-content active">
                 <div class="setup-form">
                     <div class="form-group">
-                        <label>작업자 이름</label>
-                        <input type="text" id="workerName" placeholder="이름 입력">
-                        <button onclick="setWorker()">저장</button>
+                        <label>👤 작업자 이름</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="workerName" placeholder="이름 입력" style="flex: 1;">
+                            <button class="scan-btn" onclick="startScanner('worker')">📷 스캔</button>
+                        </div>
+                        <button onclick="setWorker()" style="width: 100%; margin-top: 8px;">저장</button>
                     </div>
+
                     <div class="form-group">
-                        <label>설비 ID</label>
-                        <input type="text" id="equipment" placeholder="설비 입력">
+                        <label>🏢 설비 ID</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="equipment" placeholder="설비 입력" style="flex: 1;">
+                            <button class="scan-btn" onclick="startScanner('equipment')">📷 스캔</button>
+                            <button class="clear-btn" onclick="clearField('equipment')">✕</button>
+                        </div>
                     </div>
+
                     <div class="form-group">
-                        <label>제품 (차종/품명)</label>
-                        <input type="text" id="product" placeholder="예: 쏘나타 2.0T">
+                        <label>📋 작업표준서 (차종/품명|공정명|공정번호)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="standard" placeholder="스캔 또는 입력" style="flex: 1;">
+                            <button class="scan-btn" onclick="startScanner('standard')">📷 스캔</button>
+                            <button class="clear-btn" onclick="clearStandard()">✕</button>
+                        </div>
                     </div>
+
                     <div class="form-group">
-                        <label>공정명</label>
-                        <input type="text" id="process" placeholder="예: 절단">
+                        <label>🛍️ 제품 (자동 채워짐)</label>
+                        <input type="text" id="product" placeholder="표준서 스캔 시 자동 채워짐" readonly style="background: #f5f5f5;">
                     </div>
+
                     <div class="form-group">
-                        <label>공정번호</label>
-                        <input type="text" id="processNo" placeholder="예: P001">
+                        <label>⚙️ 공정명 (자동 채워짐)</label>
+                        <input type="text" id="process" placeholder="표준서 스캔 시 자동 채워짐" readonly style="background: #f5f5f5;">
                     </div>
+
+                    <div class="form-group">
+                        <label>#️⃣ 공정번호 (자동 채워짐)</label>
+                        <input type="text" id="processNo" placeholder="표준서 스캔 시 자동 채워짐" readonly style="background: #f5f5f5;">
+                    </div>
+
                     <button onclick="startJob()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 16px;">🚀 작업 시작</button>
                     <div id="message"></div>
                 </div>
@@ -240,6 +299,8 @@ CREATE TABLE jobs (id BIGINT PRIMARY KEY, equipment TEXT, product TEXT, process 
     <script>
         let db = null;
         let currentWorker = localStorage.getItem('worker') || '';
+        let currentScanner = null;
+        let scanStream = null;
 
         async function initDB() {
             const url = localStorage.getItem('dbUrl');
@@ -271,6 +332,98 @@ CREATE TABLE jobs (id BIGINT PRIMARY KEY, equipment TEXT, product TEXT, process 
             localStorage.setItem('dbKey', key);
             document.getElementById('settingsMessage').innerHTML = '<div class="success">저장됨! 새로고침합니다...</div>';
             setTimeout(() => location.reload(), 1000);
+        }
+
+        function startScanner(type) {
+            currentScanner = type;
+            document.getElementById('scannerTitle').textContent = type === 'worker' ? '작업자 이름 스캔' : 
+                                                                  type === 'equipment' ? '설비 ID 스캔' : '작업표준서 스캔';
+            document.getElementById('scannerModal').classList.add('show');
+            setTimeout(() => startCamera(), 100);
+        }
+
+        async function startCamera() {
+            try {
+                scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('scanner').srcObject = scanStream;
+                scanQRCode();
+            } catch (e) {
+                alert('카메라 권한이 필요합니다');
+                closeScanner();
+            }
+        }
+
+        function scanQRCode() {
+            const video = document.getElementById('scanner');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            if (video.videoWidth === 0) {
+                setTimeout(scanQRCode, 100);
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(data.data, data.width, data.height);
+
+            if (code) {
+                processQRCode(code.data);
+                closeScanner();
+            } else {
+                setTimeout(scanQRCode, 100);
+            }
+        }
+
+        function processQRCode(data) {
+            if (currentScanner === 'worker') {
+                document.getElementById('workerName').value = data;
+            } else if (currentScanner === 'equipment') {
+                document.getElementById('equipment').value = data;
+            } else if (currentScanner === 'standard') {
+                document.getElementById('standard').value = data;
+                parseStandard(data);
+            }
+        }
+
+        function parseStandard(input) {
+            if (!input) return;
+            
+            // JSON 형식 확인
+            if (input.startsWith('{')) {
+                try {
+                    const json = JSON.parse(input);
+                    document.getElementById('product').value = json.product || '';
+                    document.getElementById('process').value = json.process || '';
+                    document.getElementById('processNo').value = json.processNo || '';
+                    return;
+                } catch (e) {}
+            }
+            
+            // 파이프라인 형식 (차종/품명|공정명|공정번호)
+            const parts = input.split('|');
+            document.getElementById('product').value = (parts[0] || '').trim();
+            document.getElementById('process').value = (parts[1] || '').trim();
+            document.getElementById('processNo').value = (parts[2] || '').trim();
+        }
+
+        function closeScanner() {
+            if (scanStream) scanStream.getTracks().forEach(t => t.stop());
+            document.getElementById('scannerModal').classList.remove('show');
+            currentScanner = null;
+        }
+
+        function clearField(field) {
+            document.getElementById(field).value = '';
+        }
+
+        function clearStandard() {
+            document.getElementById('standard').value = '';
+            document.getElementById('product').value = '';
+            document.getElementById('process').value = '';
+            document.getElementById('processNo').value = '';
         }
 
         function setWorker() {
@@ -317,6 +470,7 @@ CREATE TABLE jobs (id BIGINT PRIMARY KEY, equipment TEXT, product TEXT, process 
                 }]);
                 document.getElementById('message').innerHTML = '<div class="success">작업 시작!</div>';
                 document.getElementById('equipment').value = '';
+                document.getElementById('standard').value = '';
                 document.getElementById('product').value = '';
                 document.getElementById('process').value = '';
                 document.getElementById('processNo').value = '';
