@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>설비 QR 코드 생성기</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .qr-container {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .qr-container canvas {
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+
+        .download-btn {
+            background: #4caf50;
+            margin-top: 10px;
+        }
+
+        .download-btn:hover {
+            background: #45a049;
+        }
+
+        .equipment-list {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #ddd;
+        }
+
+        .equipment-list h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .equipment-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .equipment-item button {
+            padding: 8px;
+            font-size: 12px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 설비 QR 코드 생성기</h1>
+        
+        <div class="input-group">
+            <label>설비 ID</label>
+            <input type="text" id="equipmentId" placeholder="예: CNC20, CNC30, LATHE10">
+        </div>
+
+        <div class="input-group">
+            <label>설비 이름 (선택사항)</label>
+            <input type="text" id="equipmentName" placeholder="예: CNC 가공기 #20">
+        </div>
+
+        <button onclick="generateQR()">📱 QR 코드 생성</button>
+
+        <div id="qrOutput"></div>
+
+        <div class="equipment-list">
+            <h2>📋 자주 사용되는 설비</h2>
+            <div id="equipmentListContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const commonEquipments = [
+            {id: 'CNC20', name: 'CNC 가공기 #20'},
+            {id: 'CNC30', name: 'CNC 가공기 #30'},
+            {id: 'LATHE10', name: '선반 #10'},
+            {id: 'LATHE20', name: '선반 #20'},
+            {id: 'DRILL05', name: '드릴 #05'},
+            {id: 'MILL15', name: '밀링 #15'}
+        ];
+
+        function generateQR() {
+            const equipmentId = document.getElementById('equipmentId').value.trim();
+            if (!equipmentId) {
+                alert('설비 ID를 입력하세요');
+                return;
+            }
+
+            const qrData = JSON.stringify({
+                type: 'equipment',
+                id: equipmentId,
+                timestamp: new Date().toISOString()
+            });
+
+            const output = document.getElementById('qrOutput');
+            output.innerHTML = '';
+
+            const canvas = document.createElement('canvas');
+            QRCode.toCanvas(canvas, qrData, {
+                errorCorrectionLevel: 'H',
+                type: 'image/png',
+                width: 250,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, function(error) {
+                if (error) {
+                    console.error(error);
+                    alert('QR 코드 생성 실패');
+                    return;
+                }
+
+                const container = document.createElement('div');
+                container.className = 'qr-container';
+                container.innerHTML = `
+                    <p>설비 ID: <strong>${equipmentId}</strong></p>
+                    <p style="color: #999; font-size: 12px;">${document.getElementById('equipmentName').value || '이름 없음'}</p>
+                `;
+                container.appendChild(canvas);
+
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = '📥 QR 코드 다운로드';
+                downloadBtn.onclick = () => downloadQRImage(canvas, equipmentId);
+
+                container.appendChild(downloadBtn);
+                output.appendChild(container);
+            });
+        }
+
+        function downloadQRImage(canvas, equipmentId) {
+            const link = document.createElement('a');
+            link.download = `equipment_${equipmentId}_qr.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function quickGenerate(equipmentId) {
+            document.getElementById('equipmentId').value = equipmentId;
+            generateQR();
+        }
+
+        // 자주 사용되는 설비 목록 표시
+        function showEquipmentList() {
+            const container = document.getElementById('equipmentListContainer');
+            container.innerHTML = commonEquipments.map(eq => `
+                <div class="equipment-item">
+                    <div>${eq.name}</div>
+                    <button onclick="quickGenerate('${eq.id}')" style="margin: 0; padding: 8px;">생성</button>
+                </div>
+            `).join('');
+        }
+
+        showEquipmentList();
+    </script>
+</body>
+</html>
