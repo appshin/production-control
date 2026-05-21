@@ -8,30 +8,28 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
+        .container { max-width: 1600px; margin: 0 auto; }
+        
         .setup-db {
             background: white;
-            padding: 20px;
+            padding: 30px;
             border-radius: 12px;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            max-width: 500px;
+            width: 90%;
             display: none;
         }
 
@@ -39,9 +37,32 @@
             display: block;
         }
 
+        .setup-db-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1999;
+            display: none;
+        }
+
+        .setup-db-overlay.show {
+            display: block;
+        }
+
         .setup-db h2 {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             color: #333;
+            font-size: 24px;
+        }
+
+        .setup-db p {
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
         .setup-db .input-group {
@@ -50,27 +71,38 @@
 
         .setup-db label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: 600;
             color: #333;
+            font-size: 14px;
         }
 
         .setup-db input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 13px;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        .setup-db input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .setup-db button {
             background: #28a745;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            width: 100%;
+            font-size: 14px;
+            margin-top: 10px;
         }
 
         .setup-db button:hover {
@@ -84,6 +116,19 @@
             border-radius: 6px;
             margin-top: 15px;
             color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .setup-db .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
             font-weight: 600;
         }
 
@@ -149,6 +194,10 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-color: transparent;
+        }
+
+        .mode-btn:hover {
+            border-color: #667eea;
         }
 
         .tabs {
@@ -274,19 +323,11 @@
             flex: 0.35;
         }
 
-        .btn-camera:hover {
-            background: #0b5ed7;
-        }
-
         .btn-clear {
             background: #dc3545;
             color: white;
             flex: 0.35;
             font-size: 12px;
-        }
-
-        .btn-clear:hover {
-            background: #c82333;
         }
 
         .btn-download {
@@ -295,10 +336,9 @@
             padding: 10px 20px;
             font-size: 13px;
             margin-bottom: 15px;
-        }
-
-        .btn-download:hover {
-            background: #218838;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
         }
 
         .status-box {
@@ -532,53 +572,44 @@
             padding: 20px;
             color: #999;
         }
-
-        @media (max-width: 1024px) {
-            .setup-section {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            table {
-                font-size: 11px;
-            }
-
-            th, td {
-                padding: 8px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .setup-section {
-                grid-template-columns: 1fr;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="setupDB" class="setup-db">
-            <h2>⚙️ Supabase 설정 (처음 한 번만)</h2>
-            <p style="margin-bottom: 15px; color: #666; font-size: 13px;">
-                <strong>가입하기:</strong> <a href="https://supabase.com" target="_blank" style="color: #0d6efd;">https://supabase.com</a> 에서 회원가입<br>
-                <strong>프로젝트 생성:</strong> 새 프로젝트 생성<br>
-                <strong>정보 복사:</strong> 프로젝트 설정 → API 키 → URL과 anon key 복사
-            </p>
-            <div class="input-group">
-                <label>Supabase Project URL</label>
-                <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co">
-            </div>
-            <div class="input-group">
-                <label>Supabase Anon Key</label>
-                <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiI...">
-            </div>
-            <button onclick="setupSupabase()">✅ 설정 저장</button>
-            <div id="setupStatus"></div>
+    <div class="setup-db-overlay" onclick="closeSetup()"></div>
+    
+    <div id="setupDB" class="setup-db">
+        <button class="close-btn" onclick="closeSetup()">✕</button>
+        <h2>⚙️ Supabase 설정</h2>
+        <p><strong>가입:</strong> <a href="https://supabase.com" target="_blank" style="color: #0d6efd;">https://supabase.com</a></p>
+        <p><strong>SQL 실행:</strong> Supabase 대시보드 → SQL Editor에서 아래 실행:</p>
+        <code style="display: block; background: #f5f5f5; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 11px; overflow-x: auto;">
+CREATE TABLE jobs (
+  id BIGINT PRIMARY KEY,
+  equipment TEXT,
+  product TEXT,
+  process TEXT,
+  processNo TEXT,
+  worker TEXT,
+  quantity INT,
+  status TEXT,
+  inspector TEXT,
+  startTime TEXT,
+  completeTime TEXT
+);
+        </code>
+        <div class="input-group">
+            <label>Supabase Project URL</label>
+            <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co">
         </div>
+        <div class="input-group">
+            <label>Supabase Anon Key (Publishable)</label>
+            <input type="text" id="supabaseKey" placeholder="sb_publishable_...">
+        </div>
+        <button onclick="setupSupabase()">✅ 설정 저장</button>
+        <div id="setupStatus"></div>
+    </div>
 
+    <div class="container">
         <div class="header">
             <h1>🏭 생산 관리 대시보드</h1>
             <div class="header-info">
@@ -599,6 +630,7 @@
             <button class="mode-btn" onclick="toggleSetup()" style="margin-left: auto; background: #ffc107; color: #333; border-color: #ffc107;">⚙️ 설정</button>
         </div>
 
+        <!-- 작업자 모드 -->
         <div id="workerModeContainer" class="worker-mode active">
             <div class="tabs">
                 <button class="tab-btn active" onclick="switchTab('setup')">👷 작업 설정</button>
@@ -637,7 +669,7 @@
 
                     <div class="setup-box">
                         <h3>📋 작업표준서</h3>
-                        <p>형식: 차종/품명|공정명|공정번호<br/>예: 쏘나타 2.0T|절단|P001</p>
+                        <p>형식: 차종/품명|공정명|공정번호</p>
                         <div class="input-group">
                             <label>표준서 정보</label>
                             <input type="text" id="standardInput" placeholder="차종/품명|공정명|공정번호">
@@ -729,6 +761,7 @@
             </div>
         </div>
 
+        <!-- 게스트 모드 -->
         <div id="guestModeContainer" class="guest-mode">
             <div class="tabs">
                 <button class="tab-btn active" onclick="switchGuestTab('guestQuality')">🔬 품질검사 대기</button>
@@ -913,25 +946,16 @@
         let qcJobId = null;
         let qtyJobId = null;
 
-        async function initSupabase() {
-            const url = localStorage.getItem('supabaseUrl');
-            const key = localStorage.getItem('supabaseKey');
-            
-            if (!url || !key) {
-                document.getElementById('setupDB').classList.add('show');
-                return false;
-            }
+        function toggleSetup() {
+            const setupDB = document.getElementById('setupDB');
+            const overlay = document.querySelector('.setup-db-overlay');
+            setupDB.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
 
-            try {
-                supabase = window.supabase.createClient(url, key);
-                await supabase.from('jobs').select('count').limit(1);
-                document.getElementById('setupDB').classList.remove('show');
-                return true;
-            } catch (e) {
-                console.log('테이블 생성 필요...');
-                document.getElementById('setupDB').classList.add('show');
-                return false;
-            }
+        function closeSetup() {
+            document.getElementById('setupDB').classList.remove('show');
+            document.querySelector('.setup-db-overlay').classList.remove('show');
         }
 
         function setupSupabase() {
@@ -945,14 +969,32 @@
 
             localStorage.setItem('supabaseUrl', url);
             localStorage.setItem('supabaseKey', key);
+            
             supabase = window.supabase.createClient(url, key);
             
-            document.getElementById('setupStatus').innerHTML = '<div class="success">✅ 설정이 저장되었습니다! 새로고침해주세요.</div>';
-            setTimeout(() => location.reload(), 2000);
+            document.getElementById('setupStatus').innerHTML = '<div class="success">✅ 설정이 저장되었습니다!</div>';
+            setTimeout(() => {
+                closeSetup();
+                location.reload();
+            }, 1500);
         }
 
-        function toggleSetup() {
-            document.getElementById('setupDB').classList.toggle('show');
+        async function initSupabase() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            if (!url || !key) {
+                return false;
+            }
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                const { data } = await supabase.from('jobs').select('count').limit(1);
+                return true;
+            } catch (e) {
+                console.log('Supabase 연결 실패');
+                return false;
+            }
         }
 
         async function getJobs() {
@@ -961,7 +1003,7 @@
                 const { data } = await supabase.from('jobs').select('*');
                 return data || [];
             } catch (e) {
-                console.log('jobs 테이블이 없습니다. Supabase 대시보드에서 다음 SQL을 실행하세요:\n\nCREATE TABLE jobs (\n  id BIGINT PRIMARY KEY,\n  equipment TEXT,\n  product TEXT,\n  process TEXT,\n  processNo TEXT,\n  worker TEXT,\n  quantity INT,\n  status TEXT,\n  inspector TEXT,\n  startTime TEXT,\n  completeTime TEXT\n);');
+                console.log('데이터 조회 실패');
                 return [];
             }
         }
@@ -971,7 +1013,7 @@
             try {
                 await supabase.from('jobs').insert([job]);
             } catch (e) {
-                console.log('작업 저장 실패:', e);
+                console.log('저장 실패:', e);
             }
         }
 
@@ -980,14 +1022,13 @@
             try {
                 await supabase.from('jobs').update(updates).eq('id', jobId);
             } catch (e) {
-                console.log('작업 업데이트 실패:', e);
+                console.log('업데이트 실패:', e);
             }
         }
 
         function parseStandard(input) {
             if (!input) return { product: '', process: '', processNo: '' };
             
-            // JSON 형식 확인
             if (input.startsWith('{')) {
                 try {
                     const json = JSON.parse(input);
@@ -999,7 +1040,6 @@
                 } catch (e) {}
             }
             
-            // 파이프라인 형식 (차종/품명|공정명|공정번호)
             const parts = input.split('|');
             return {
                 product: (parts[0] || '').trim(),
@@ -1024,18 +1064,17 @@
         }
 
         function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('#workerModeContainer .tab-content').forEach(e => e.classList.remove('active'));
             document.getElementById(tab).classList.add('active');
-            document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('#workerModeContainer .tab-btn').forEach(e => e.classList.remove('active'));
             event.target.classList.add('active');
-            setTimeout(() => refreshAllTables(), 100);
+            refreshAllTables();
         }
 
         function switchGuestTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('#guestModeContainer .tab-content').forEach(e => e.classList.remove('active'));
             document.getElementById(tab).classList.add('active');
-            const btns = document.querySelectorAll('#guestModeContainer .tab-btn');
-            btns.forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('#guestModeContainer .tab-btn').forEach(e => e.classList.remove('active'));
             event.target.classList.add('active');
             refreshAllTables();
         }
@@ -1305,7 +1344,6 @@
         async function refreshAllTables() {
             const jobs = await getJobs();
 
-            // 품질검사 테이블
             const qJobs = jobs.filter(j => j.status === 'waiting_quality');
             const qRows = qJobs.length === 0 ? '<tr><td colspan="7" class="empty-msg">검사 대기 작업 없음</td></tr>' : 
                 qJobs.map(j => `
@@ -1335,7 +1373,6 @@
             if (qTable) qTable.innerHTML = qRows;
             if (guestQTable) guestQTable.innerHTML = guestQRows;
 
-            // 생산현황 테이블
             const pJobs = jobs.filter(j => j.status !== 'rejected');
             const pRows = pJobs.length === 0 ? '<tr><td colspan="11" class="empty-msg">작업 기록 없음</td></tr>' : 
                 pJobs.map(j => `
@@ -1373,7 +1410,6 @@
             if (pTable) pTable.innerHTML = pRows;
             if (guestPTable) guestPTable.innerHTML = guestPRows;
 
-            // 승인관리 테이블
             const aJobs = jobs.filter(j => j.status === 'pending');
             const aRows = aJobs.length === 0 ? '<tr><td colspan="9" class="empty-msg">승인 대기 없음</td></tr>' : 
                 aJobs.map(j => `
