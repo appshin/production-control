@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>생산 관리 대시보드</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -59,6 +60,33 @@
             color: #333;
             font-weight: 700;
             font-size: 16px;
+        }
+
+        .mode-selector {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
         }
 
         .tabs {
@@ -192,6 +220,18 @@
             background: #c82333;
         }
 
+        .btn-download {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .btn-download:hover {
+            background: #218838;
+        }
+
         .status-box {
             background: #e8f5e9;
             border-left: 4px solid #4caf50;
@@ -234,19 +274,19 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px;
+            padding: 10px;
             text-align: left;
             font-weight: 600;
         }
 
         td {
-            padding: 12px;
+            padding: 10px;
             border-bottom: 1px solid #ddd;
         }
 
@@ -287,7 +327,7 @@
         }
 
         .btn-action {
-            padding: 6px 12px;
+            padding: 6px 10px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -402,9 +442,33 @@
             color: #999;
         }
 
+        .worker-mode {
+            display: none;
+        }
+
+        .worker-mode.active {
+            display: block;
+        }
+
+        .guest-mode {
+            display: none;
+        }
+
+        .guest-mode.active {
+            display: block;
+        }
+
         @media (max-width: 1024px) {
             .setup-section {
                 grid-template-columns: 1fr 1fr;
+            }
+
+            table {
+                font-size: 11px;
+            }
+
+            th, td {
+                padding: 8px;
             }
         }
 
@@ -435,125 +499,209 @@
             </div>
         </div>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('setup')">👷 작업 설정</button>
-            <button class="tab-btn" onclick="switchTab('quality')">🔬 품질검사</button>
-            <button class="tab-btn" onclick="switchTab('production')">📊 생산현황</button>
-            <button class="tab-btn" onclick="switchTab('approval')">✅ 승인관리</button>
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('worker')">👷 작업자 모드</button>
+            <button class="mode-btn" onclick="setMode('guest')">👁️ 게스트 모드 (조회)</button>
         </div>
 
-        <!-- 작업 설정 탭 -->
-        <div id="setup" class="tab-content active">
-            <div class="setup-section">
-                <div class="setup-box">
-                    <h3>👤 작업자 정보</h3>
-                    <div class="input-group">
-                        <label>작업자 이름</label>
-                        <div class="button-group">
-                            <input type="text" id="workerInput" placeholder="이름 입력">
-                            <button class="btn-camera" onclick="startWorkerScanner()">📷</button>
+        <!-- 작업자 모드 -->
+        <div id="workerModeContainer" class="worker-mode active">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('setup')">👷 작업 설정</button>
+                <button class="tab-btn" onclick="switchTab('quality')">🔬 품질검사</button>
+                <button class="tab-btn" onclick="switchTab('production')">📊 생산현황</button>
+                <button class="tab-btn" onclick="switchTab('approval')">✅ 승인관리</button>
+            </div>
+
+            <!-- 작업 설정 탭 -->
+            <div id="setup" class="tab-content active">
+                <div class="setup-section">
+                    <div class="setup-box">
+                        <h3>👤 작업자 정보</h3>
+                        <div class="input-group">
+                            <label>작업자 이름</label>
+                            <div class="button-group">
+                                <input type="text" id="workerInput" placeholder="이름 입력">
+                                <button class="btn-camera" onclick="startWorkerScanner()">📷</button>
+                            </div>
                         </div>
+                        <button class="btn-primary" onclick="setWorkerName()" style="width:100%;">저장</button>
+                        <div id="workerStatus"></div>
                     </div>
-                    <button class="btn-primary" onclick="setWorkerName()" style="width:100%;">저장</button>
-                    <div id="workerStatus"></div>
+
+                    <div class="setup-box">
+                        <h3>🏢 설비 정보</h3>
+                        <div class="input-group">
+                            <label>설비 ID</label>
+                            <input type="text" id="equipmentInput" placeholder="설비 ID 입력 또는 스캔">
+                        </div>
+                        <div class="button-group">
+                            <button class="btn-camera" onclick="startEquipmentScanner()">📷 QR 스캔</button>
+                            <button class="btn-clear" onclick="clearEquipment()">✕ 초기화</button>
+                        </div>
+                        <div id="equipmentStatus"></div>
+                    </div>
+
+                    <div class="setup-box">
+                        <h3>📋 작업표준서</h3>
+                        <div class="input-group">
+                            <label>작업표준서 ID</label>
+                            <input type="text" id="standardInput" placeholder="표준서 ID 입력 또는 스캔">
+                        </div>
+                        <div class="button-group">
+                            <button class="btn-camera" onclick="startStandardScanner()">📷 QR 스캔</button>
+                            <button class="btn-clear" onclick="clearStandard()">✕ 초기화</button>
+                        </div>
+                        <div id="standardStatus"></div>
+                    </div>
                 </div>
 
-                <div class="setup-box">
-                    <h3>🏢 설비 정보</h3>
-                    <div class="input-group">
-                        <label>설비 ID</label>
-                        <input type="text" id="equipmentInput" placeholder="설비 ID 입력 또는 스캔">
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-camera" onclick="startEquipmentScanner()">📷 QR 스캔</button>
-                        <button class="btn-clear" onclick="clearEquipment()">✕ 초기화</button>
-                    </div>
-                    <div id="equipmentStatus"></div>
-                </div>
-
-                <div class="setup-box">
-                    <h3>📋 작업표준서</h3>
-                    <div class="input-group">
-                        <label>작업표준서 ID</label>
-                        <input type="text" id="standardInput" placeholder="표준서 ID 입력 또는 스캔">
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-camera" onclick="startStandardScanner()">📷 QR 스캔</button>
-                        <button class="btn-clear" onclick="clearStandard()">✕ 초기화</button>
-                    </div>
-                    <div id="standardStatus"></div>
+                <div id="startBtnContainer" style="display:none;" class="start-btn-section">
+                    <button class="btn-primary" onclick="startWork()">🚀 작업 시작</button>
                 </div>
             </div>
 
-            <div id="startBtnContainer" style="display:none;" class="start-btn-section">
-                <button class="btn-primary" onclick="startWork()">🚀 작업 시작</button>
+            <!-- 품질검사 탭 -->
+            <div id="quality" class="tab-content">
+                <div class="dashboard-board">
+                    <h2>🔬 초품검사 대기</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>설비</th>
+                                <th>작업자</th>
+                                <th>표준서</th>
+                                <th>상태</th>
+                                <th>조치</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qualityTable">
+                            <tr><td colspan="5" class="empty-msg">데이터 로드 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 생산현황 탭 -->
+            <div id="production" class="tab-content">
+                <div class="dashboard-board">
+                    <h2>📊 생산 작업 현황 (전체 공정)</h2>
+                    <button class="btn-download" onclick="downloadExcel()">📥 엑셀 다운로드</button>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>설비</th>
+                                <th>작업자</th>
+                                <th>표준서</th>
+                                <th>시작시간</th>
+                                <th>완료시간</th>
+                                <th>생산량</th>
+                                <th>품질담당</th>
+                                <th>상태</th>
+                                <th>조치</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productionTable">
+                            <tr><td colspan="9" class="empty-msg">데이터 로드 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 승인관리 탭 -->
+            <div id="approval" class="tab-content">
+                <div class="dashboard-board">
+                    <h2>✅ 승인 관리 (전체 공정)</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>설비</th>
+                                <th>작업자</th>
+                                <th>표준서</th>
+                                <th>생산량</th>
+                                <th>품질담당</th>
+                                <th>상태</th>
+                                <th>조치</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvalTable">
+                            <tr><td colspan="7" class="empty-msg">데이터 로드 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- 품질검사 탭 -->
-        <div id="quality" class="tab-content">
-            <div class="dashboard-board">
-                <h2>🔬 초품검사 대기 (전체 공정)</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>설비</th>
-                            <th>작업자</th>
-                            <th>표준서</th>
-                            <th>상태</th>
-                            <th>조치</th>
-                        </tr>
-                    </thead>
-                    <tbody id="qualityTable">
-                        <tr><td colspan="5" class="empty-msg">데이터 로드 중...</td></tr>
-                    </tbody>
-                </table>
+        <!-- 게스트 모드 -->
+        <div id="guestModeContainer" class="guest-mode">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchGuestTab('guestQuality')">🔬 품질검사 대기</button>
+                <button class="tab-btn" onclick="switchGuestTab('guestProduction')">📊 생산현황</button>
+                <button class="tab-btn" onclick="switchGuestTab('guestApproval')">✅ 승인대기</button>
             </div>
-        </div>
 
-        <!-- 생산현황 탭 -->
-        <div id="production" class="tab-content">
-            <div class="dashboard-board">
-                <h2>📊 생산 작업 현황 (전체 공정)</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>설비</th>
-                            <th>작업자</th>
-                            <th>표준서</th>
-                            <th>생산량</th>
-                            <th>품질담당</th>
-                            <th>상태</th>
-                            <th>조치</th>
-                        </tr>
-                    </thead>
-                    <tbody id="productionTable">
-                        <tr><td colspan="7" class="empty-msg">데이터 로드 중...</td></tr>
-                    </tbody>
-                </table>
+            <div id="guestQuality" class="tab-content active">
+                <div class="dashboard-board">
+                    <h2>🔬 초품검사 대기 (전체 공정)</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>설비</th>
+                                <th>작업자</th>
+                                <th>표준서</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guestQualityTable">
+                            <tr><td colspan="4" class="empty-msg">데이터 로드 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-        <!-- 승인관리 탭 -->
-        <div id="approval" class="tab-content">
-            <div class="dashboard-board">
-                <h2>✅ 승인 관리 (전체 공정)</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>설비</th>
-                            <th>작업자</th>
-                            <th>표준서</th>
-                            <th>생산량</th>
-                            <th>품질담당</th>
-                            <th>상태</th>
-                            <th>조치</th>
-                        </tr>
-                    </thead>
-                    <tbody id="approvalTable">
-                        <tr><td colspan="7" class="empty-msg">데이터 로드 중...</td></tr>
-                    </tbody>
-                </table>
+            <div id="guestProduction" class="tab-content">
+                <div class="dashboard-board">
+                    <h2>📊 생산 작업 현황 (전체 공정)</h2>
+                    <button class="btn-download" onclick="downloadExcel()">📥 엑셀 다운로드</button>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>설비</th>
+                                <th>작업자</th>
+                                <th>표준서</th>
+                                <th>시작시간</th>
+                                <th>완료시간</th>
+                                <th>생산량</th>
+                                <th>품질담당</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guestProductionTable">
+                            <tr><td colspan="8" class="empty-msg">데이터 로드 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="guestApproval" class="tab-content">
+                <div class="dashboard-board">
+                    <h2>✅ 승인 대기 (전체 공정)</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>설비</th>
+                                <th>작업자</th>
+                                <th>표준서</th>
+                                <th>생산량</th>
+                                <th>품질담당</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guestApprovalTable">
+                            <tr><td colspan="6" class="empty-msg">데이터 로드 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -653,22 +801,29 @@
     </div>
 
     <script>
-        // 전역 공유 상태 (모든 작업자의 데이터)
-        let globalState = {
-            jobs: []
-        };
-
-        // 현재 작업자 세션 상태
-        let currentSession = {
-            worker: null,
-            equipment: null,
-            standard: null
-        };
+        let globalState = { jobs: [] };
+        let currentSession = { worker: null, equipment: null, standard: null };
+        let currentMode = 'worker';
 
         let scanType = null;
         let scanStream = null;
         let qcJobId = null;
         let qtyJobId = null;
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(e => e.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (mode === 'worker') {
+                document.getElementById('workerModeContainer').classList.add('active');
+                document.getElementById('guestModeContainer').classList.remove('active');
+            } else {
+                document.getElementById('workerModeContainer').classList.remove('active');
+                document.getElementById('guestModeContainer').classList.add('active');
+                refreshAllTables();
+            }
+        }
 
         function saveGlobalState() {
             localStorage.setItem('globalProdState', JSON.stringify(globalState));
@@ -686,6 +841,16 @@
             document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
             event.target.classList.add('active');
             setTimeout(() => refreshAllTables(), 100);
+        }
+
+        function switchGuestTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            document.querySelectorAll('.mode-btn').forEach(e => {});
+            const btns = document.querySelectorAll('#guestModeContainer .tab-btn');
+            btns.forEach(e => e.classList.remove('active'));
+            event.target.classList.add('active');
+            refreshAllTables();
         }
 
         function setWorkerName() {
@@ -827,11 +992,11 @@
                 quantity: 0,
                 status: 'waiting_quality',
                 inspector: null,
-                startTime: new Date().toLocaleString('ko-KR')
+                startTime: new Date().toLocaleString('ko-KR'),
+                completeTime: null
             };
             globalState.jobs.push(job);
             
-            // 현재 세션 초기화 (다음 작업을 위해)
             currentSession.equipment = null;
             currentSession.standard = null;
             document.getElementById('equipmentInput').value = '';
@@ -850,6 +1015,10 @@
             qcJobId = jobId;
             document.getElementById('qcEquip').value = job.equipment;
             document.getElementById('qcWorker').value = job.worker;
+            document.getElementById('qcName').value = '';
+            document.getElementById('qcItem1').value = '';
+            document.getElementById('qcItem2').value = '';
+            document.getElementById('qcItem3').value = '';
             document.getElementById('qualityModal').classList.add('active');
         }
 
@@ -872,6 +1041,7 @@
             const job = globalState.jobs.find(j => j.id === jobId);
             qtyJobId = jobId;
             document.getElementById('qtyEquip').value = job.equipment;
+            document.getElementById('qtyVal').value = '';
             document.getElementById('qtyModal').classList.add('active');
         }
 
@@ -884,6 +1054,7 @@
             if (!qty) return alert('수량 입력');
             const job = globalState.jobs.find(j => j.id === qtyJobId);
             job.quantity = qty;
+            job.completeTime = new Date().toLocaleString('ko-KR');
             job.status = 'pending';
             saveGlobalState();
             closeQty();
@@ -917,11 +1088,10 @@
         function refreshAllTables() {
             // 품질검사 테이블
             const qTable = document.getElementById('qualityTable');
+            const guestQTable = document.getElementById('guestQualityTable');
             const qJobs = globalState.jobs.filter(j => j.status === 'waiting_quality');
-            if (qJobs.length === 0) {
-                qTable.innerHTML = '<tr><td colspan="5" class="empty-msg">검사 대기 작업 없음</td></tr>';
-            } else {
-                qTable.innerHTML = qJobs.map(j => `
+            const qRows = qJobs.length === 0 ? '<tr><td colspan="5" class="empty-msg">검사 대기 작업 없음</td></tr>' : 
+                qJobs.map(j => `
                     <tr>
                         <td>${j.equipment}</td>
                         <td>${j.worker}</td>
@@ -930,34 +1100,58 @@
                         <td><button class="btn-action btn-check" onclick="openQualityModal(${j.id})">검사</button></td>
                     </tr>
                 `).join('');
-            }
-
-            // 생산현황 테이블
-            const pTable = document.getElementById('productionTable');
-            const pJobs = globalState.jobs.filter(j => j.status !== 'rejected');
-            if (pJobs.length === 0) {
-                pTable.innerHTML = '<tr><td colspan="7" class="empty-msg">작업 기록 없음</td></tr>';
-            } else {
-                pTable.innerHTML = pJobs.map(j => `
+            const guestQRows = qJobs.length === 0 ? '<tr><td colspan="4" class="empty-msg">검사 대기 작업 없음</td></tr>' : 
+                qJobs.map(j => `
                     <tr>
                         <td>${j.equipment}</td>
                         <td>${j.worker}</td>
                         <td>${j.standard}</td>
+                        <td><span class="status-badge checking">대기</span></td>
+                    </tr>
+                `).join('');
+            if (qTable) qTable.innerHTML = qRows;
+            if (guestQTable) guestQTable.innerHTML = guestQRows;
+
+            // 생산현황 테이블
+            const pTable = document.getElementById('productionTable');
+            const guestPTable = document.getElementById('guestProductionTable');
+            const pJobs = globalState.jobs.filter(j => j.status !== 'rejected');
+            const pRows = pJobs.length === 0 ? '<tr><td colspan="9" class="empty-msg">작업 기록 없음</td></tr>' : 
+                pJobs.map(j => `
+                    <tr>
+                        <td>${j.equipment}</td>
+                        <td>${j.worker}</td>
+                        <td>${j.standard}</td>
+                        <td>${j.startTime}</td>
+                        <td>${j.completeTime || '-'}</td>
                         <td>${j.quantity}</td>
                         <td>${j.inspector || '-'}</td>
                         <td><span class="status-badge ${getStatusClass(j.status)}">${getStatusText(j.status)}</span></td>
                         <td>${j.status === 'working' ? `<button class="btn-action btn-input-qty" onclick="openQtyModal(${j.id})">수량</button>` : ''}</td>
                     </tr>
                 `).join('');
-            }
+            const guestPRows = pJobs.length === 0 ? '<tr><td colspan="8" class="empty-msg">작업 기록 없음</td></tr>' : 
+                pJobs.map(j => `
+                    <tr>
+                        <td>${j.equipment}</td>
+                        <td>${j.worker}</td>
+                        <td>${j.standard}</td>
+                        <td>${j.startTime}</td>
+                        <td>${j.completeTime || '-'}</td>
+                        <td>${j.quantity}</td>
+                        <td>${j.inspector || '-'}</td>
+                        <td><span class="status-badge ${getStatusClass(j.status)}">${getStatusText(j.status)}</span></td>
+                    </tr>
+                `).join('');
+            if (pTable) pTable.innerHTML = pRows;
+            if (guestPTable) guestPTable.innerHTML = guestPRows;
 
             // 승인관리 테이블
             const aTable = document.getElementById('approvalTable');
+            const guestATable = document.getElementById('guestApprovalTable');
             const aJobs = globalState.jobs.filter(j => j.status === 'pending');
-            if (aJobs.length === 0) {
-                aTable.innerHTML = '<tr><td colspan="7" class="empty-msg">승인 대기 없음</td></tr>';
-            } else {
-                aTable.innerHTML = aJobs.map(j => `
+            const aRows = aJobs.length === 0 ? '<tr><td colspan="7" class="empty-msg">승인 대기 없음</td></tr>' : 
+                aJobs.map(j => `
                     <tr>
                         <td>${j.equipment}</td>
                         <td>${j.worker}</td>
@@ -971,7 +1165,19 @@
                         </td>
                     </tr>
                 `).join('');
-            }
+            const guestARows = aJobs.length === 0 ? '<tr><td colspan="6" class="empty-msg">승인 대기 없음</td></tr>' : 
+                aJobs.map(j => `
+                    <tr>
+                        <td>${j.equipment}</td>
+                        <td>${j.worker}</td>
+                        <td>${j.standard}</td>
+                        <td>${j.quantity}</td>
+                        <td>${j.inspector}</td>
+                        <td><span class="status-badge pending">대기</span></td>
+                    </tr>
+                `).join('');
+            if (aTable) aTable.innerHTML = aRows;
+            if (guestATable) guestATable.innerHTML = guestARows;
         }
 
         function getStatusClass(status) {
@@ -982,6 +1188,25 @@
                 'approved': 'completed'
             };
             return map[status] || 'waiting';
+        }
+
+        function downloadExcel() {
+            const pJobs = globalState.jobs.filter(j => j.status !== 'rejected');
+            const data = pJobs.map(j => ({
+                '설비': j.equipment,
+                '작업자': j.worker,
+                '표준서': j.standard,
+                '시작시간': j.startTime,
+                '완료시간': j.completeTime || '-',
+                '생산량': j.quantity,
+                '품질담당': j.inspector || '-',
+                '상태': getStatusText(j.status)
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '생산현황');
+            XLSX.writeFile(wb, '생산현황_' + new Date().toLocaleString('ko-KR').replace(/[/:]/g, '-') + '.xlsx');
         }
 
         function updateTime() {
