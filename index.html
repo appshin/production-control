@@ -30,17 +30,12 @@
             border-radius: 12px;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
         }
 
         .header h1 {
             font-size: 28px;
             color: #333;
-            margin: 0;
+            margin-bottom: 10px;
         }
 
         .header-info {
@@ -92,10 +87,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-color: transparent;
-        }
-
-        .tab-btn:hover {
-            border-color: #667eea;
         }
 
         .tab-content {
@@ -172,7 +163,6 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 13px;
-            transition: all 0.3s;
             font-family: 'Noto Sans KR', sans-serif;
         }
 
@@ -189,8 +179,6 @@
         .btn-camera {
             background: #0d6efd;
             color: white;
-            padding: 10px 12px;
-            font-size: 12px;
             flex: 0.4;
         }
 
@@ -201,20 +189,25 @@
         .status-box {
             background: #e8f5e9;
             border-left: 4px solid #4caf50;
-            padding: 10px;
+            padding: 8px;
             border-radius: 6px;
             margin-top: 8px;
             font-size: 12px;
             color: #2e7d32;
         }
 
-        .start-button-container {
-            display: none;
+        .start-btn-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
         }
 
-        .start-button-container.show {
-            display: block;
+        .start-btn-section button {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
         }
 
         .dashboard-board {
@@ -222,7 +215,6 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
         }
 
         .dashboard-board h2 {
@@ -233,31 +225,30 @@
             border-bottom: 2px solid #667eea;
         }
 
-        .dashboard-table {
+        table {
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
         }
 
-        .dashboard-table th {
+        th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 12px;
             text-align: left;
             font-weight: 600;
-            border: 1px solid #ddd;
         }
 
-        .dashboard-table td {
+        td {
             padding: 12px;
-            border: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
         }
 
-        .dashboard-table tbody tr:nth-child(even) {
+        tbody tr:nth-child(even) {
             background: #f9f9f9;
         }
 
-        .dashboard-table tbody tr:hover {
+        tbody tr:hover {
             background: #f0f4ff;
         }
 
@@ -274,7 +265,7 @@
             color: #856404;
         }
 
-        .status-badge.quality-check {
+        .status-badge.checking {
             background: #cfe2ff;
             color: #084298;
         }
@@ -294,18 +285,14 @@
             color: #2e7d32;
         }
 
-        .action-buttons {
-            display: flex;
-            gap: 6px;
-        }
-
-        .action-buttons button {
+        .btn-action {
             padding: 6px 12px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
             font-weight: 600;
+            margin-right: 4px;
         }
 
         .btn-check {
@@ -313,17 +300,9 @@
             color: white;
         }
 
-        .btn-check:hover {
-            background: #0b5ed7;
-        }
-
         .btn-input-qty {
             background: #28a745;
             color: white;
-        }
-
-        .btn-input-qty:hover {
-            background: #218838;
         }
 
         .btn-approve {
@@ -331,17 +310,9 @@
             color: white;
         }
 
-        .btn-approve:hover {
-            background: #45a049;
-        }
-
         .btn-reject {
             background: #f44336;
             color: white;
-        }
-
-        .btn-reject:hover {
-            background: #da190b;
         }
 
         .modal {
@@ -404,13 +375,6 @@
             border: 2px solid #ddd;
             border-radius: 8px;
             background: #000;
-            display: block;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #999;
         }
 
         .form-row {
@@ -431,19 +395,13 @@
             font-size: 14px;
         }
 
-        .approval-notification {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            color: #2e7d32;
-            font-size: 16px;
-            font-weight: 600;
+        .empty-msg {
             text-align: center;
+            padding: 40px 20px;
+            color: #999;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 1024px) {
             .setup-section {
                 grid-template-columns: 1fr 1fr;
             }
@@ -467,11 +425,11 @@
             <div class="header-info">
                 <div>
                     <label>현재 시간</label>
-                    <span id="currentTime">-</span>
+                    <span id="currentTime">00:00:00</span>
                 </div>
                 <div>
                     <label>작업자</label>
-                    <span id="workerName">-</span>
+                    <span id="workerName">미설정</span>
                 </div>
             </div>
         </div>
@@ -485,15 +443,9 @@
 
         <!-- 작업 설정 탭 -->
         <div id="setup" class="tab-content active">
-            <!-- 승인 알림 -->
-            <div id="approvalNotification" class="approval-notification" style="display:none;">
-                ✅ 초품검사 승인이 났습니다! 작업을 시작하세요!
-            </div>
-
             <div class="setup-section">
                 <div class="setup-box">
                     <h3>👤 작업자 정보</h3>
-                    <p>작업자 이름을 입력하세요</p>
                     <div class="input-group">
                         <label>작업자 이름</label>
                         <div class="button-group">
@@ -501,13 +453,12 @@
                             <button class="btn-camera" onclick="startWorkerScanner()">📷</button>
                         </div>
                     </div>
-                    <button class="btn-primary" onclick="setWorkerName()" style="width:100%; padding: 12px;">저장</button>
+                    <button class="btn-primary" onclick="setWorkerName()" style="width:100%;">저장</button>
                     <div id="workerStatus"></div>
                 </div>
 
                 <div class="setup-box">
                     <h3>🏢 설비 정보</h3>
-                    <p>설비의 QR 코드를 스캔하세요</p>
                     <div class="input-group">
                         <label>설비 ID</label>
                         <div class="button-group">
@@ -520,7 +471,6 @@
 
                 <div class="setup-box">
                     <h3>📋 작업표준서</h3>
-                    <p>작업표준서의 QR 코드를 스캔하세요</p>
                     <div class="input-group">
                         <label>작업표준서 ID</label>
                         <div class="button-group">
@@ -532,21 +482,16 @@
                 </div>
             </div>
 
-            <!-- 작업 시작 버튼 -->
-            <div id="startButtonContainer" class="start-button-container">
-                <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                    <button class="btn-primary" onclick="startWork()" style="width:100%; padding: 15px; font-size: 16px;">
-                        🚀 작업 시작
-                    </button>
-                </div>
+            <div id="startBtnContainer" style="display:none;" class="start-btn-section">
+                <button class="btn-primary" onclick="startWork()">🚀 작업 시작</button>
             </div>
         </div>
 
         <!-- 품질검사 탭 -->
         <div id="quality" class="tab-content">
             <div class="dashboard-board">
-                <h2>🔬 초품검사 대기 (품질부서용)</h2>
-                <table class="dashboard-table">
+                <h2>🔬 초품검사 대기</h2>
+                <table>
                     <thead>
                         <tr>
                             <th>설비</th>
@@ -556,10 +501,8 @@
                             <th>조치</th>
                         </tr>
                     </thead>
-                    <tbody id="qualityTableBody">
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: #999;">검사 대기 작업이 없습니다</td>
-                        </tr>
+                    <tbody id="qualityTable">
+                        <tr><td colspan="5" class="empty-msg">데이터 로드 중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -569,7 +512,7 @@
         <div id="production" class="tab-content">
             <div class="dashboard-board">
                 <h2>📊 생산 작업 현황</h2>
-                <table class="dashboard-table">
+                <table>
                     <thead>
                         <tr>
                             <th>설비</th>
@@ -581,10 +524,8 @@
                             <th>조치</th>
                         </tr>
                     </thead>
-                    <tbody id="productionTableBody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; color: #999;">작업 기록이 없습니다</td>
-                        </tr>
+                    <tbody id="productionTable">
+                        <tr><td colspan="7" class="empty-msg">데이터 로드 중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -593,8 +534,8 @@
         <!-- 승인관리 탭 -->
         <div id="approval" class="tab-content">
             <div class="dashboard-board">
-                <h2>✅ 승인 관리 (생산관리자용)</h2>
-                <table class="dashboard-table">
+                <h2>✅ 승인 관리</h2>
+                <table>
                     <thead>
                         <tr>
                             <th>설비</th>
@@ -603,13 +544,11 @@
                             <th>생산량</th>
                             <th>품질담당</th>
                             <th>상태</th>
-                            <th>승인/반려</th>
+                            <th>조치</th>
                         </tr>
                     </thead>
-                    <tbody id="approvalTableBody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; color: #999;">승인 대기 작업이 없습니다</td>
-                        </tr>
+                    <tbody id="approvalTable">
+                        <tr><td colspan="7" class="empty-msg">데이터 로드 중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -621,39 +560,30 @@
         <div class="modal-content">
             <div class="modal-header">📷 QR 코드 스캔</div>
             <div class="modal-body">
-                <p>QR 코드를 카메라에 비춰주세요</p>
                 <video id="scanner" autoplay playsinline></video>
                 <canvas id="canvas" style="display:none;"></canvas>
             </div>
             <div class="modal-footer">
-                <button class="btn-primary" style="background: #f5f5f5; color: #333; border: 2px solid #ddd;" onclick="closeScanner()">닫기</button>
+                <button class="btn-primary" style="background:#f5f5f5; color:#333;" onclick="closeScanner()">닫기</button>
             </div>
         </div>
     </div>
 
-    <!-- 작업 시작 안내 팝업 -->
-    <div id="startWorkPopup" class="modal">
+    <!-- 작업 시작 팝업 -->
+    <div id="startPopup" class="modal">
         <div class="modal-content">
             <div class="modal-header">🚀 작업 시작 확인</div>
             <div class="modal-body">
-                <div class="popup-message">
-                    ⚠️ 품질부서에서 초품검사를 받으세요!
-                </div>
-                <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; font-size: 13px;">
-                    <div style="margin-bottom: 8px;">
-                        <strong>작업자:</strong> <span id="popupWorker"></span>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <strong>설비:</strong> <span id="popupEquipment"></span>
-                    </div>
-                    <div>
-                        <strong>표준서:</strong> <span id="popupStandard"></span>
-                    </div>
+                <div class="popup-message">⚠️ 품질부서에서 초품검사를 받으세요!</div>
+                <div style="background:#f5f5f5; padding:15px; border-radius:8px;">
+                    <div><strong>작업자:</strong> <span id="popWorker"></span></div>
+                    <div><strong>설비:</strong> <span id="popEquipment"></span></div>
+                    <div><strong>표준서:</strong> <span id="popStandard"></span></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-primary" style="background: #f5f5f5; color: #333; border: 2px solid #ddd;" onclick="closeStartWorkPopup()">닫기</button>
-                <button class="btn-primary" onclick="confirmStartWork()">확인</button>
+                <button class="btn-primary" style="background:#f5f5f5; color:#333;" onclick="closeStartPopup()">닫기</button>
+                <button class="btn-primary" onclick="confirmStart()">확인</button>
             </div>
         </div>
     </div>
@@ -661,350 +591,269 @@
     <!-- 품질검사 모달 -->
     <div id="qualityModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">🔬 초품검사 입력 (품질부서)</div>
+            <div class="modal-header">🔬 초품검사 입력</div>
             <div class="modal-body">
-                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
-                    <div class="form-row">
-                        <div class="input-group">
-                            <label>설비</label>
-                            <input type="text" id="qcEquipment" readonly style="background: #f5f5f5;">
-                        </div>
-                        <div class="input-group">
-                            <label>작업자</label>
-                            <input type="text" id="qcWorker" readonly style="background: #f5f5f5;">
-                        </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>설비</label>
+                        <input type="text" id="qcEquip" readonly style="background:#f5f5f5;">
                     </div>
                     <div class="input-group">
-                        <label>품질담당자</label>
-                        <input type="text" id="qcInspector" placeholder="이름 입력">
+                        <label>작업자</label>
+                        <input type="text" id="qcWorker" readonly style="background:#f5f5f5;">
                     </div>
-                    <div class="input-group">
-                        <label>검사항목1 (예: 외경)</label>
-                        <input type="text" id="qcItem1" placeholder="검사값">
-                    </div>
-                    <div class="input-group">
-                        <label>검사항목2 (예: 내경)</label>
-                        <input type="text" id="qcItem2" placeholder="검사값">
-                    </div>
-                    <div class="input-group">
-                        <label>검사항목3 (예: 길이)</label>
-                        <input type="text" id="qcItem3" placeholder="검사값">
-                    </div>
+                </div>
+                <div class="input-group">
+                    <label>품질담당자</label>
+                    <input type="text" id="qcName" placeholder="이름">
+                </div>
+                <div class="input-group">
+                    <label>검사항목1</label>
+                    <input type="text" id="qcItem1" placeholder="값">
+                </div>
+                <div class="input-group">
+                    <label>검사항목2</label>
+                    <input type="text" id="qcItem2" placeholder="값">
+                </div>
+                <div class="input-group">
+                    <label>검사항목3</label>
+                    <input type="text" id="qcItem3" placeholder="값">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-primary" style="background: #f5f5f5; color: #333; border: 2px solid #ddd;" onclick="closeQualityModal()">취소</button>
+                <button class="btn-primary" style="background:#f5f5f5; color:#333;" onclick="closeQuality()">취소</button>
                 <button class="btn-primary" onclick="approveQuality()">✅ 양품 승인</button>
             </div>
         </div>
     </div>
 
     <!-- 수량 입력 모달 -->
-    <div id="quantityModal" class="modal">
+    <div id="qtyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">📊 생산 수량 입력</div>
             <div class="modal-body">
-                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
-                    <div class="input-group">
-                        <label>설비</label>
-                        <input type="text" id="qtyEquipment" readonly style="background: #f5f5f5;">
-                    </div>
-                    <div class="input-group">
-                        <label>생산 수량</label>
-                        <input type="number" id="qtyAmount" placeholder="수량 입력" min="1">
-                    </div>
+                <div class="input-group">
+                    <label>설비</label>
+                    <input type="text" id="qtyEquip" readonly style="background:#f5f5f5;">
+                </div>
+                <div class="input-group">
+                    <label>생산 수량</label>
+                    <input type="number" id="qtyVal" placeholder="수량" min="1">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-primary" style="background: #f5f5f5; color: #333; border: 2px solid #ddd;" onclick="closeQuantityModal()">취소</button>
-                <button class="btn-primary" onclick="submitQuantity()">✅ 수량 입력</button>
+                <button class="btn-primary" style="background:#f5f5f5; color:#333;" onclick="closeQty()">취소</button>
+                <button class="btn-primary" onclick="submitQty()">✅ 입력</button>
             </div>
         </div>
     </div>
 
     <script>
-        let scannerActive = false;
-        let currentScannerType = null;
-        let stream = null;
-
-        const STORAGE_KEY = 'productionData';
-        const REFRESH_INTERVAL = 1000; // 1초마다 새로고침
-
-        let appState = {
-            currentWorker: 'Worker',
-            currentWorkerForSetup: null,
-            currentEquipment: null,
-            currentStandard: null,
-            jobs: [],
+        let state = {
+            worker: null,
+            equipment: null,
+            standard: null,
+            jobs: []
         };
 
-        let currentQualityCheckJobId = null;
-        let currentQuantityJobId = null;
+        let scanType = null;
+        let scanStream = null;
+        let qcJobId = null;
+        let qtyJobId = null;
 
-        function loadData() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) appState = JSON.parse(saved);
+        function saveState() {
+            localStorage.setItem('prodState', JSON.stringify(state));
+            refreshTables();
         }
 
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-            updateAllTables();
+        function loadState() {
+            const saved = localStorage.getItem('prodState');
+            if (saved) state = JSON.parse(saved);
         }
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+            event.target.classList.add('active');
+            setTimeout(() => refreshTables(), 100);
         }
 
-        function startWorkerScanner() { currentScannerType = 'worker'; openScanner(); }
-        function startEquipmentScanner() { currentScannerType = 'equipment'; openScanner(); }
-        function startStandardScanner() { currentScannerType = 'standard'; openScanner(); }
+        function setWorkerName() {
+            const name = document.getElementById('workerInput').value.trim();
+            if (!name) return alert('이름을 입력하세요');
+            state.worker = name;
+            document.getElementById('workerName').textContent = name;
+            document.getElementById('workerInput').value = '';
+            document.getElementById('workerStatus').innerHTML = '<div class="status-box">✓ 저장됨</div>';
+            checkShowBtn();
+        }
+
+        function startWorkerScanner() { scanType = 'worker'; openScanner(); }
+        function startEquipmentScanner() { scanType = 'equipment'; openScanner(); }
+        function startStandardScanner() { scanType = 'standard'; openScanner(); }
 
         function openScanner() {
             document.getElementById('scannerModal').classList.add('active');
-            setTimeout(() => startCamera(), 100);
+            setTimeout(() => startCam(), 100);
         }
 
-        async function startCamera() {
+        async function startCam() {
             try {
-                const video = document.getElementById('scanner');
-                scannerActive = true;
-                
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                scanStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
                 });
-                
-                video.srcObject = stream;
-                setTimeout(() => scanQRCode(), 500);
-            } catch (err) {
-                alert('카메라 접근 권한이 필요합니다.');
+                document.getElementById('scanner').srcObject = scanStream;
+                scanQR();
+            } catch (e) {
+                alert('카메라 권한 필요');
                 closeScanner();
             }
         }
 
-        function scanQRCode() {
-            if (!scannerActive) return;
-
+        function scanQR() {
             const video = document.getElementById('scanner');
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
             if (video.videoWidth === 0) {
-                setTimeout(scanQRCode, 100);
+                setTimeout(scanQR, 100);
                 return;
             }
 
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            ctx.drawImage(video, 0, 0);
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(data.data, data.width, data.height);
 
             if (code) {
-                processQRCode(code.data);
+                processCode(code.data);
                 closeScanner();
             } else {
-                if (scannerActive) setTimeout(scanQRCode, 100);
+                setTimeout(scanQR, 100);
             }
         }
 
-        function processQRCode(data) {
-            try {
-                const parsed = JSON.parse(data);
-                if (currentScannerType === 'worker') {
-                    document.getElementById('workerInput').value = parsed.name || data;
-                } else if (currentScannerType === 'equipment' && parsed.type === 'equipment') {
-                    appState.currentEquipment = parsed.id;
-                    document.getElementById('equipmentInput').value = parsed.id;
-                    document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 설비 인식됨</div>';
-                    checkAllInputs();
-                } else if (currentScannerType === 'standard') {
-                    appState.currentStandard = data;
-                    document.getElementById('standardInput').value = data;
-                    document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 표준서 인식됨</div>';
-                    checkAllInputs();
-                }
-            } catch (e) {
-                if (currentScannerType === 'worker') {
-                    document.getElementById('workerInput').value = data;
-                } else if (currentScannerType === 'equipment') {
-                    appState.currentEquipment = data;
-                    document.getElementById('equipmentInput').value = data;
-                    document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 설비 인식됨</div>';
-                    checkAllInputs();
-                } else if (currentScannerType === 'standard') {
-                    appState.currentStandard = data;
-                    document.getElementById('standardInput').value = data;
-                    document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 표준서 인식됨</div>';
-                    checkAllInputs();
-                }
+        function processCode(data) {
+            if (scanType === 'worker') {
+                document.getElementById('workerInput').value = data;
+            } else if (scanType === 'equipment') {
+                state.equipment = data;
+                document.getElementById('equipmentInput').value = data;
+                document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 인식됨</div>';
+                checkShowBtn();
+            } else if (scanType === 'standard') {
+                state.standard = data;
+                document.getElementById('standardInput').value = data;
+                document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 인식됨</div>';
+                checkShowBtn();
             }
         }
 
         function closeScanner() {
-            scannerActive = false;
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
+            if (scanStream) scanStream.getTracks().forEach(t => t.stop());
             document.getElementById('scannerModal').classList.remove('active');
-            currentScannerType = null;
         }
 
-        function checkAllInputs() {
-            if (appState.currentEquipment && appState.currentStandard && appState.currentWorkerForSetup) {
-                document.getElementById('startButtonContainer').classList.add('show');
-            }
-        }
-
-        function setWorkerName() {
-            const name = document.getElementById('workerInput').value.trim();
-            if (name) {
-                appState.currentWorker = name;
-                appState.currentWorkerForSetup = name;
-                document.getElementById('workerName').textContent = name;
-                document.getElementById('workerInput').value = '';
-                document.getElementById('workerStatus').innerHTML = '<div class="status-box">✓ 작업자 저장됨</div>';
-                checkAllInputs();
+        function checkShowBtn() {
+            if (state.worker && state.equipment && state.standard) {
+                document.getElementById('startBtnContainer').style.display = 'block';
             }
         }
 
         function startWork() {
-            document.getElementById('popupWorker').textContent = appState.currentWorker;
-            document.getElementById('popupEquipment').textContent = appState.currentEquipment;
-            document.getElementById('popupStandard').textContent = appState.currentStandard;
-            document.getElementById('startWorkPopup').classList.add('active');
+            document.getElementById('popWorker').textContent = state.worker;
+            document.getElementById('popEquipment').textContent = state.equipment;
+            document.getElementById('popStandard').textContent = state.standard;
+            document.getElementById('startPopup').classList.add('active');
         }
 
-        function closeStartWorkPopup() {
-            document.getElementById('startWorkPopup').classList.remove('active');
+        function closeStartPopup() {
+            document.getElementById('startPopup').classList.remove('active');
         }
 
-        function confirmStartWork() {
+        function confirmStart() {
             const job = {
-                id: Date.now().toString(),
-                equipment: appState.currentEquipment,
-                standard: appState.currentStandard,
+                id: Date.now(),
+                equipment: state.equipment,
+                standard: state.standard,
+                worker: state.worker,
                 quantity: 0,
-                worker: appState.currentWorker,
-                startTime: new Date().toLocaleTimeString('ko-KR'),
                 status: 'waiting_quality',
-                timestamp: new Date().getTime(),
-                qualityCheckData: null,
-                qualityInspector: null
+                inspector: null,
+                startTime: new Date().toLocaleString('ko-KR')
             };
-
-            appState.jobs.push(job);
-
-            // 입력값 초기화
+            state.jobs.push(job);
+            state.equipment = null;
+            state.standard = null;
             document.getElementById('equipmentInput').value = '';
             document.getElementById('standardInput').value = '';
             document.getElementById('equipmentStatus').innerHTML = '';
             document.getElementById('standardStatus').innerHTML = '';
-            document.getElementById('startButtonContainer').classList.remove('show');
-            appState.currentEquipment = null;
-            appState.currentStandard = null;
-            appState.currentWorkerForSetup = null;
-
-            saveData();
-            closeStartWorkPopup();
-            alert('작업이 시작되었습니다! 품질부서의 초품검사 승인을 기다려주세요.');
+            document.getElementById('startBtnContainer').style.display = 'none';
+            saveState();
+            closeStartPopup();
+            alert('작업 시작!');
         }
 
-        function updateAllTables() {
-            updateQualityTable();
-            updateProductionTable();
-            updateApprovalTable();
+        function openQualityModal(jobId) {
+            const job = state.jobs.find(j => j.id === jobId);
+            qcJobId = jobId;
+            document.getElementById('qcEquip').value = job.equipment;
+            document.getElementById('qcWorker').value = job.worker;
+            document.getElementById('qualityModal').classList.add('active');
         }
 
-        function updateQualityTable() {
-            const waitingJobs = appState.jobs.filter(j => j.status === 'waiting_quality');
-            const tbody = document.getElementById('qualityTableBody');
-
-            if (waitingJobs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">검사 대기 작업이 없습니다</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = waitingJobs.map(job => `
-                <tr>
-                    <td><strong>${job.equipment}</strong></td>
-                    <td>${job.worker}</td>
-                    <td>${job.standard}</td>
-                    <td><span class="status-badge quality-check">대기중</span></td>
-                    <td>
-                        <button class="btn-check" onclick="openQualityModal('${job.id}')">검사</button>
-                    </td>
-                </tr>
-            `).join('');
+        function closeQuality() {
+            document.getElementById('qualityModal').classList.remove('active');
         }
 
-        function updateProductionTable() {
-            const allJobs = appState.jobs.filter(j => j.status !== 'rejected');
-            const tbody = document.getElementById('productionTableBody');
-
-            if (allJobs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">작업 기록이 없습니다</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = allJobs.map(job => `
-                <tr>
-                    <td><strong>${job.equipment}</strong></td>
-                    <td>${job.worker}</td>
-                    <td>${job.standard}</td>
-                    <td>${job.quantity}개</td>
-                    <td>${job.qualityInspector || '-'}</td>
-                    <td>
-                        <span class="status-badge ${getStatusClass(job.status)}">
-                            ${getStatusText(job.status)}
-                        </span>
-                    </td>
-                    <td>
-                        ${job.status === 'working' ? `<button class="btn-input-qty" onclick="openQuantityModal('${job.id}')">수량입력</button>` : ''}
-                    </td>
-                </tr>
-            `).join('');
+        function approveQuality() {
+            const name = document.getElementById('qcName').value.trim();
+            if (!name) return alert('담당자명 입력');
+            const job = state.jobs.find(j => j.id === qcJobId);
+            job.status = 'working';
+            job.inspector = name;
+            saveState();
+            closeQuality();
+            alert('양품 승인!');
         }
 
-        function updateApprovalTable() {
-            const pendingJobs = appState.jobs.filter(j => j.status === 'pending');
-            const tbody = document.getElementById('approvalTableBody');
-
-            if (pendingJobs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">승인 대기 작업이 없습니다</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = pendingJobs.map(job => `
-                <tr>
-                    <td><strong>${job.equipment}</strong></td>
-                    <td>${job.worker}</td>
-                    <td>${job.standard}</td>
-                    <td>${job.quantity}개</td>
-                    <td>${job.qualityInspector}</td>
-                    <td><span class="status-badge pending">승인대기</span></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-approve" onclick="approveJob('${job.id}')">승인</button>
-                            <button class="btn-reject" onclick="rejectJob('${job.id}')">반려</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+        function openQtyModal(jobId) {
+            const job = state.jobs.find(j => j.id === jobId);
+            qtyJobId = jobId;
+            document.getElementById('qtyEquip').value = job.equipment;
+            document.getElementById('qtyModal').classList.add('active');
         }
 
-        function getStatusClass(status) {
-            const map = {
-                'waiting_quality': 'quality-check',
-                'working': 'working',
-                'pending': 'pending',
-                'approved': 'completed'
-            };
-            return map[status] || 'waiting';
+        function closeQty() {
+            document.getElementById('qtyModal').classList.remove('active');
+        }
+
+        function submitQty() {
+            const qty = parseInt(document.getElementById('qtyVal').value);
+            if (!qty) return alert('수량 입력');
+            const job = state.jobs.find(j => j.id === qtyJobId);
+            job.quantity = qty;
+            job.status = 'pending';
+            saveState();
+            closeQty();
+            alert('수량 입력!');
+        }
+
+        function approveJob(jobId) {
+            const job = state.jobs.find(j => j.id === jobId);
+            job.status = 'approved';
+            saveState();
+            alert('승인!');
+        }
+
+        function rejectJob(jobId) {
+            const job = state.jobs.find(j => j.id === jobId);
+            job.status = 'rejected';
+            saveState();
+            alert('반려!');
         }
 
         function getStatusText(status) {
@@ -1014,136 +863,93 @@
                 'pending': '승인대기',
                 'approved': '완료'
             };
-            return map[status] || '대기중';
+            return map[status] || status;
         }
 
-        function openQualityModal(jobId) {
-            const job = appState.jobs.find(j => j.id === jobId);
-            if (!job) return;
-
-            currentQualityCheckJobId = jobId;
-            document.getElementById('qcEquipment').value = job.equipment;
-            document.getElementById('qcWorker').value = job.worker;
-            document.getElementById('qcInspector').value = '';
-            document.getElementById('qcItem1').value = '';
-            document.getElementById('qcItem2').value = '';
-            document.getElementById('qcItem3').value = '';
-
-            document.getElementById('qualityModal').classList.add('active');
-        }
-
-        function closeQualityModal() {
-            document.getElementById('qualityModal').classList.remove('active');
-            currentQualityCheckJobId = null;
-        }
-
-        function approveQuality() {
-            const inspector = document.getElementById('qcInspector').value.trim();
-            if (!inspector) {
-                alert('품질담당자 이름을 입력하세요');
-                return;
+        function refreshTables() {
+            // 품질검사 테이블
+            const qTable = document.getElementById('qualityTable');
+            const qJobs = state.jobs.filter(j => j.status === 'waiting_quality');
+            if (qJobs.length === 0) {
+                qTable.innerHTML = '<tr><td colspan="5" class="empty-msg">검사 대기 작업 없음</td></tr>';
+            } else {
+                qTable.innerHTML = qJobs.map(j => `
+                    <tr>
+                        <td>${j.equipment}</td>
+                        <td>${j.worker}</td>
+                        <td>${j.standard}</td>
+                        <td><span class="status-badge checking">대기</span></td>
+                        <td><button class="btn-action btn-check" onclick="openQualityModal(${j.id})">검사</button></td>
+                    </tr>
+                `).join('');
             }
 
-            const jobIndex = appState.jobs.findIndex(j => j.id === currentQualityCheckJobId);
-            if (jobIndex !== -1) {
-                appState.jobs[jobIndex].status = 'working';
-                appState.jobs[jobIndex].qualityCheckData = {
-                    item1: document.getElementById('qcItem1').value,
-                    item2: document.getElementById('qcItem2').value,
-                    item3: document.getElementById('qcItem3').value,
-                    checkTime: new Date().toLocaleTimeString('ko-KR')
-                };
-                appState.jobs[jobIndex].qualityInspector = inspector;
-
-                saveData();
-                closeQualityModal();
-                alert('✅ 양품 승인되었습니다!');
-
-                // 작업자에게 알림 표시 (같은 작업자면)
-                notifyWorker(appState.jobs[jobIndex].worker);
-            }
-        }
-
-        function notifyWorker(workerName) {
-            // 같은 작업자가 현재 로그인되어 있으면 알림 표시
-            if (appState.currentWorker === workerName) {
-                const notifDiv = document.getElementById('approvalNotification');
-                notifDiv.style.display = 'block';
-                setTimeout(() => {
-                    notifDiv.style.display = 'none';
-                }, 5000);
-            }
-        }
-
-        function openQuantityModal(jobId) {
-            const job = appState.jobs.find(j => j.id === jobId);
-            if (!job) return;
-
-            currentQuantityJobId = jobId;
-            document.getElementById('qtyEquipment').value = job.equipment;
-            document.getElementById('qtyAmount').value = '';
-
-            document.getElementById('quantityModal').classList.add('active');
-        }
-
-        function closeQuantityModal() {
-            document.getElementById('quantityModal').classList.remove('active');
-            currentQuantityJobId = null;
-        }
-
-        function submitQuantity() {
-            const quantity = document.getElementById('qtyAmount').value;
-            if (!quantity || quantity <= 0) {
-                alert('유효한 수량을 입력하세요');
-                return;
+            // 생산현황 테이블
+            const pTable = document.getElementById('productionTable');
+            const pJobs = state.jobs.filter(j => j.status !== 'rejected');
+            if (pJobs.length === 0) {
+                pTable.innerHTML = '<tr><td colspan="7" class="empty-msg">작업 기록 없음</td></tr>';
+            } else {
+                pTable.innerHTML = pJobs.map(j => `
+                    <tr>
+                        <td>${j.equipment}</td>
+                        <td>${j.worker}</td>
+                        <td>${j.standard}</td>
+                        <td>${j.quantity}</td>
+                        <td>${j.inspector || '-'}</td>
+                        <td><span class="status-badge ${getStatusClass(j.status)}">${getStatusText(j.status)}</span></td>
+                        <td>${j.status === 'working' ? `<button class="btn-action btn-input-qty" onclick="openQtyModal(${j.id})">수량</button>` : ''}</td>
+                    </tr>
+                `).join('');
             }
 
-            const jobIndex = appState.jobs.findIndex(j => j.id === currentQuantityJobId);
-            if (jobIndex !== -1) {
-                appState.jobs[jobIndex].quantity = parseInt(quantity);
-                appState.jobs[jobIndex].status = 'pending';
-
-                saveData();
-                closeQuantityModal();
-                alert('수량이 입력되었습니다!');
+            // 승인관리 테이블
+            const aTable = document.getElementById('approvalTable');
+            const aJobs = state.jobs.filter(j => j.status === 'pending');
+            if (aJobs.length === 0) {
+                aTable.innerHTML = '<tr><td colspan="7" class="empty-msg">승인 대기 없음</td></tr>';
+            } else {
+                aTable.innerHTML = aJobs.map(j => `
+                    <tr>
+                        <td>${j.equipment}</td>
+                        <td>${j.worker}</td>
+                        <td>${j.standard}</td>
+                        <td>${j.quantity}</td>
+                        <td>${j.inspector}</td>
+                        <td><span class="status-badge pending">대기</span></td>
+                        <td>
+                            <button class="btn-action btn-approve" onclick="approveJob(${j.id})">승인</button>
+                            <button class="btn-action btn-reject" onclick="rejectJob(${j.id})">반려</button>
+                        </td>
+                    </tr>
+                `).join('');
             }
         }
 
-        function approveJob(jobId) {
-            const jobIndex = appState.jobs.findIndex(j => j.id === jobId);
-            if (jobIndex !== -1) {
-                appState.jobs[jobIndex].status = 'approved';
-                saveData();
-                alert('✅ 작업이 승인되었습니다');
-            }
-        }
-
-        function rejectJob(jobId) {
-            const jobIndex = appState.jobs.findIndex(j => j.id === jobId);
-            if (jobIndex !== -1) {
-                appState.jobs[jobIndex].status = 'rejected';
-                saveData();
-                alert('❌ 작업이 반려되었습니다');
-            }
+        function getStatusClass(status) {
+            const map = {
+                'waiting_quality': 'checking',
+                'working': 'working',
+                'pending': 'pending',
+                'approved': 'completed'
+            };
+            return map[status] || 'waiting';
         }
 
         function updateTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ko-KR');
+            const now = new Date().toLocaleTimeString('ko-KR');
+            document.getElementById('currentTime').textContent = now;
         }
 
         setInterval(updateTime, 1000);
-
-        // 주기적으로 데이터 새로고침
         setInterval(() => {
-            loadData();
-            updateAllTables();
-        }, REFRESH_INTERVAL);
+            loadState();
+            refreshTables();
+        }, 500);
 
-        loadData();
-        updateAllTables();
-        updateTime();
-        document.getElementById('workerName').textContent = appState.currentWorker;
+        loadState();
+        if (state.worker) document.getElementById('workerName').textContent = state.worker;
+        refreshTables();
     </script>
 </body>
 </html>
