@@ -117,12 +117,6 @@
             color: #333;
         }
 
-        .setup-box p {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 12px;
-        }
-
         .input-group {
             margin-bottom: 12px;
         }
@@ -148,11 +142,6 @@
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .input-group input:disabled {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
         }
 
         .button-group {
@@ -186,7 +175,6 @@
             background: #0d6efd;
             color: white;
             flex: 0.35;
-            padding: 10px;
         }
 
         .btn-camera:hover {
@@ -197,7 +185,6 @@
             background: #dc3545;
             color: white;
             flex: 0.35;
-            padding: 10px;
             font-size: 12px;
         }
 
@@ -277,11 +264,6 @@
             border-radius: 15px;
             font-size: 11px;
             font-weight: 600;
-        }
-
-        .status-badge.waiting {
-            background: #fff3cd;
-            color: #856404;
         }
 
         .status-badge.checking {
@@ -434,10 +416,6 @@
             .form-row {
                 grid-template-columns: 1fr;
             }
-
-            .button-group {
-                flex-wrap: wrap;
-            }
         }
     </style>
 </head>
@@ -451,7 +429,7 @@
                     <span id="currentTime">00:00:00</span>
                 </div>
                 <div>
-                    <label>작업자</label>
+                    <label>현재 작업자</label>
                     <span id="workerName">미설정</span>
                 </div>
             </div>
@@ -515,7 +493,7 @@
         <!-- 품질검사 탭 -->
         <div id="quality" class="tab-content">
             <div class="dashboard-board">
-                <h2>🔬 초품검사 대기</h2>
+                <h2>🔬 초품검사 대기 (전체 공정)</h2>
                 <table>
                     <thead>
                         <tr>
@@ -536,7 +514,7 @@
         <!-- 생산현황 탭 -->
         <div id="production" class="tab-content">
             <div class="dashboard-board">
-                <h2>📊 생산 작업 현황</h2>
+                <h2>📊 생산 작업 현황 (전체 공정)</h2>
                 <table>
                     <thead>
                         <tr>
@@ -559,7 +537,7 @@
         <!-- 승인관리 탭 -->
         <div id="approval" class="tab-content">
             <div class="dashboard-board">
-                <h2>✅ 승인 관리</h2>
+                <h2>✅ 승인 관리 (전체 공정)</h2>
                 <table>
                     <thead>
                         <tr>
@@ -675,11 +653,16 @@
     </div>
 
     <script>
-        let state = {
+        // 전역 공유 상태 (모든 작업자의 데이터)
+        let globalState = {
+            jobs: []
+        };
+
+        // 현재 작업자 세션 상태
+        let currentSession = {
             worker: null,
             equipment: null,
-            standard: null,
-            jobs: []
+            standard: null
         };
 
         let scanType = null;
@@ -687,14 +670,14 @@
         let qcJobId = null;
         let qtyJobId = null;
 
-        function saveState() {
-            localStorage.setItem('prodState', JSON.stringify(state));
-            refreshTables();
+        function saveGlobalState() {
+            localStorage.setItem('globalProdState', JSON.stringify(globalState));
+            refreshAllTables();
         }
 
-        function loadState() {
-            const saved = localStorage.getItem('prodState');
-            if (saved) state = JSON.parse(saved);
+        function loadGlobalState() {
+            const saved = localStorage.getItem('globalProdState');
+            if (saved) globalState = JSON.parse(saved);
         }
 
         function switchTab(tab) {
@@ -702,13 +685,13 @@
             document.getElementById(tab).classList.add('active');
             document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
             event.target.classList.add('active');
-            setTimeout(() => refreshTables(), 100);
+            setTimeout(() => refreshAllTables(), 100);
         }
 
         function setWorkerName() {
             const name = document.getElementById('workerInput').value.trim();
             if (!name) return alert('이름을 입력하세요');
-            state.worker = name;
+            currentSession.worker = name;
             document.getElementById('workerName').textContent = name;
             document.getElementById('workerInput').value = '';
             document.getElementById('workerStatus').innerHTML = '<div class="status-box">✓ 저장됨</div>';
@@ -765,12 +748,12 @@
             if (scanType === 'worker') {
                 document.getElementById('workerInput').value = data;
             } else if (scanType === 'equipment') {
-                state.equipment = data;
+                currentSession.equipment = data;
                 document.getElementById('equipmentInput').value = data;
                 document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 설비 인식됨</div>';
                 checkShowBtn();
             } else if (scanType === 'standard') {
-                state.standard = data;
+                currentSession.standard = data;
                 document.getElementById('standardInput').value = data;
                 document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 표준서 인식됨</div>';
                 checkShowBtn();
@@ -782,12 +765,11 @@
             document.getElementById('scannerModal').classList.remove('active');
         }
 
-        // 직접 입력 처리 - 설비
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('equipmentInput').addEventListener('change', function(e) {
                 const value = e.target.value.trim();
                 if (value) {
-                    state.equipment = value;
+                    currentSession.equipment = value;
                     document.getElementById('equipmentStatus').innerHTML = '<div class="status-box">✓ 설비 인식됨</div>';
                     checkShowBtn();
                 }
@@ -796,7 +778,7 @@
             document.getElementById('standardInput').addEventListener('change', function(e) {
                 const value = e.target.value.trim();
                 if (value) {
-                    state.standard = value;
+                    currentSession.standard = value;
                     document.getElementById('standardStatus').innerHTML = '<div class="status-box">✓ 표준서 인식됨</div>';
                     checkShowBtn();
                 }
@@ -804,21 +786,21 @@
         });
 
         function clearEquipment() {
-            state.equipment = null;
+            currentSession.equipment = null;
             document.getElementById('equipmentInput').value = '';
             document.getElementById('equipmentStatus').innerHTML = '';
             checkShowBtn();
         }
 
         function clearStandard() {
-            state.standard = null;
+            currentSession.standard = null;
             document.getElementById('standardInput').value = '';
             document.getElementById('standardStatus').innerHTML = '';
             checkShowBtn();
         }
 
         function checkShowBtn() {
-            if (state.worker && state.equipment && state.standard) {
+            if (currentSession.worker && currentSession.equipment && currentSession.standard) {
                 document.getElementById('startBtnContainer').style.display = 'block';
             } else {
                 document.getElementById('startBtnContainer').style.display = 'none';
@@ -826,9 +808,9 @@
         }
 
         function startWork() {
-            document.getElementById('popWorker').textContent = state.worker;
-            document.getElementById('popEquipment').textContent = state.equipment;
-            document.getElementById('popStandard').textContent = state.standard;
+            document.getElementById('popWorker').textContent = currentSession.worker;
+            document.getElementById('popEquipment').textContent = currentSession.equipment;
+            document.getElementById('popStandard').textContent = currentSession.standard;
             document.getElementById('startPopup').classList.add('active');
         }
 
@@ -839,29 +821,32 @@
         function confirmStart() {
             const job = {
                 id: Date.now(),
-                equipment: state.equipment,
-                standard: state.standard,
-                worker: state.worker,
+                equipment: currentSession.equipment,
+                standard: currentSession.standard,
+                worker: currentSession.worker,
                 quantity: 0,
                 status: 'waiting_quality',
                 inspector: null,
                 startTime: new Date().toLocaleString('ko-KR')
             };
-            state.jobs.push(job);
-            state.equipment = null;
-            state.standard = null;
+            globalState.jobs.push(job);
+            
+            // 현재 세션 초기화 (다음 작업을 위해)
+            currentSession.equipment = null;
+            currentSession.standard = null;
             document.getElementById('equipmentInput').value = '';
             document.getElementById('standardInput').value = '';
             document.getElementById('equipmentStatus').innerHTML = '';
             document.getElementById('standardStatus').innerHTML = '';
             document.getElementById('startBtnContainer').style.display = 'none';
-            saveState();
+            
+            saveGlobalState();
             closeStartPopup();
-            alert('작업 시작!');
+            alert('작업 시작! 이제 다른 작업을 등록할 수 있습니다.');
         }
 
         function openQualityModal(jobId) {
-            const job = state.jobs.find(j => j.id === jobId);
+            const job = globalState.jobs.find(j => j.id === jobId);
             qcJobId = jobId;
             document.getElementById('qcEquip').value = job.equipment;
             document.getElementById('qcWorker').value = job.worker;
@@ -875,16 +860,16 @@
         function approveQuality() {
             const name = document.getElementById('qcName').value.trim();
             if (!name) return alert('담당자명 입력');
-            const job = state.jobs.find(j => j.id === qcJobId);
+            const job = globalState.jobs.find(j => j.id === qcJobId);
             job.status = 'working';
             job.inspector = name;
-            saveState();
+            saveGlobalState();
             closeQuality();
             alert('양품 승인!');
         }
 
         function openQtyModal(jobId) {
-            const job = state.jobs.find(j => j.id === jobId);
+            const job = globalState.jobs.find(j => j.id === jobId);
             qtyJobId = jobId;
             document.getElementById('qtyEquip').value = job.equipment;
             document.getElementById('qtyModal').classList.add('active');
@@ -897,25 +882,25 @@
         function submitQty() {
             const qty = parseInt(document.getElementById('qtyVal').value);
             if (!qty) return alert('수량 입력');
-            const job = state.jobs.find(j => j.id === qtyJobId);
+            const job = globalState.jobs.find(j => j.id === qtyJobId);
             job.quantity = qty;
             job.status = 'pending';
-            saveState();
+            saveGlobalState();
             closeQty();
             alert('수량 입력!');
         }
 
         function approveJob(jobId) {
-            const job = state.jobs.find(j => j.id === jobId);
+            const job = globalState.jobs.find(j => j.id === jobId);
             job.status = 'approved';
-            saveState();
+            saveGlobalState();
             alert('승인!');
         }
 
         function rejectJob(jobId) {
-            const job = state.jobs.find(j => j.id === jobId);
+            const job = globalState.jobs.find(j => j.id === jobId);
             job.status = 'rejected';
-            saveState();
+            saveGlobalState();
             alert('반려!');
         }
 
@@ -929,10 +914,10 @@
             return map[status] || status;
         }
 
-        function refreshTables() {
+        function refreshAllTables() {
             // 품질검사 테이블
             const qTable = document.getElementById('qualityTable');
-            const qJobs = state.jobs.filter(j => j.status === 'waiting_quality');
+            const qJobs = globalState.jobs.filter(j => j.status === 'waiting_quality');
             if (qJobs.length === 0) {
                 qTable.innerHTML = '<tr><td colspan="5" class="empty-msg">검사 대기 작업 없음</td></tr>';
             } else {
@@ -949,7 +934,7 @@
 
             // 생산현황 테이블
             const pTable = document.getElementById('productionTable');
-            const pJobs = state.jobs.filter(j => j.status !== 'rejected');
+            const pJobs = globalState.jobs.filter(j => j.status !== 'rejected');
             if (pJobs.length === 0) {
                 pTable.innerHTML = '<tr><td colspan="7" class="empty-msg">작업 기록 없음</td></tr>';
             } else {
@@ -968,7 +953,7 @@
 
             // 승인관리 테이블
             const aTable = document.getElementById('approvalTable');
-            const aJobs = state.jobs.filter(j => j.status === 'pending');
+            const aJobs = globalState.jobs.filter(j => j.status === 'pending');
             if (aJobs.length === 0) {
                 aTable.innerHTML = '<tr><td colspan="7" class="empty-msg">승인 대기 없음</td></tr>';
             } else {
@@ -1006,13 +991,12 @@
 
         setInterval(updateTime, 1000);
         setInterval(() => {
-            loadState();
-            refreshTables();
+            loadGlobalState();
+            refreshAllTables();
         }, 500);
 
-        loadState();
-        if (state.worker) document.getElementById('workerName').textContent = state.worker;
-        refreshTables();
+        loadGlobalState();
+        refreshAllTables();
     </script>
 </body>
 </html>
