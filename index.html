@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>생산 관리 대시보드</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -195,6 +196,18 @@
 
         .btn-secondary:hover {
             background: #eeeeee;
+        }
+
+        .btn-camera {
+            background: #0d6efd;
+            color: white;
+            padding: 10px 15px;
+            font-size: 13px;
+            flex: 0.5;
+        }
+
+        .btn-camera:hover {
+            background: #0b5ed7;
         }
 
         .status-box {
@@ -495,6 +508,31 @@
             cursor: pointer;
         }
 
+        #scanner {
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .scanner-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .scanner-controls button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -546,6 +584,10 @@
             .form-row {
                 grid-template-columns: 1fr;
             }
+
+            .button-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -575,13 +617,30 @@
         <!-- 작업자 탭 -->
         <div id="worker" class="tab-content active">
             <div class="worker-section">
+                <!-- 작업자 정보 -->
+                <div class="scan-box">
+                    <h2>👤 작업자 정보</h2>
+                    <p>작업자 이름을 입력하세요</p>
+                    <div class="input-group">
+                        <label>작업자 이름</label>
+                        <div class="button-group">
+                            <input type="text" id="workerInput" placeholder="작업자 이름 입력">
+                            <button class="btn-camera" onclick="startWorkerScanner()">📷 스캔</button>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="setWorkerName()" style="width:100%;">저장</button>
+                </div>
+
                 <!-- 설비 스캔 -->
                 <div class="scan-box">
                     <h2>🏢 설비 QR 코드 스캔</h2>
                     <p>먼저 설비의 QR 코드를 스캔하세요</p>
                     <div class="input-group">
                         <label>설비 ID</label>
-                        <input type="text" id="equipmentInput" placeholder="QR 코드를 스캔하거나 직접 입력">
+                        <div class="button-group">
+                            <input type="text" id="equipmentInput" placeholder="QR 코드를 스캔하거나 직접 입력">
+                            <button class="btn-camera" onclick="startEquipmentScanner()">📷 스캔</button>
+                        </div>
                     </div>
                     <div class="status-box" id="equipmentStatus" style="display:none;">
                         <div class="status-title">✓ 설비 인식됨</div>
@@ -595,24 +654,16 @@
                     <p>다음 작업표준서의 QR 코드를 스캔하세요</p>
                     <div class="input-group">
                         <label>작업표준서 ID</label>
-                        <input type="text" id="standardInput" placeholder="QR 코드를 스캔하거나 직접 입력">
+                        <div class="button-group">
+                            <input type="text" id="standardInput" placeholder="QR 코드를 스캔하거나 직접 입력">
+                            <button class="btn-camera" onclick="startStandardScanner()">📷 스캔</button>
+                        </div>
                     </div>
                     <div class="status-box" id="standardStatus" style="display:none;">
                         <div class="status-title">✓ 작업표준서 인식됨</div>
                         <div class="status-text" id="standardInfo"></div>
                     </div>
                     <button class="btn-primary" onclick="setupWork()" style="width:100%; margin-top:10px;">작업 설정</button>
-                </div>
-
-                <!-- 작업자 정보 -->
-                <div class="scan-box">
-                    <h2>👤 작업자 정보</h2>
-                    <p>작업자 이름을 입력하세요</p>
-                    <div class="input-group">
-                        <label>작업자 이름</label>
-                        <input type="text" id="workerInput" placeholder="작업자 이름 입력">
-                    </div>
-                    <button class="btn-primary" onclick="setWorkerName()" style="width:100%;">저장</button>
                 </div>
 
                 <!-- 작업 완료 -->
@@ -681,6 +732,21 @@
         </div>
     </div>
 
+    <!-- QR 스캔 모달 -->
+    <div id="scannerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">📷 QR 코드 스캔</div>
+            <div class="modal-body">
+                <p id="scannerTitle">QR 코드를 카메라에 비춰주세요</p>
+                <video id="scanner" style="width: 100%; max-width: 400px; border-radius: 8px;"></video>
+                <div class="scanner-controls">
+                    <button class="btn-primary" id="startBtn" onclick="resumeScanner()">▶️ 시작</button>
+                    <button class="btn-secondary" onclick="closeScanner()">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 품질검사 모달 -->
     <div id="qualityModal" class="modal">
         <div class="modal-content">
@@ -733,6 +799,11 @@
     </div>
 
     <script>
+        // ZXing 설정
+        const codeReader = new ZXing.BrowserQRCodeReader();
+        let scannerActive = false;
+        let currentScannerType = null; // 'equipment', 'standard', 또는 'worker'
+
         // 로컬스토리지 초기화
         const STORAGE_KEY = 'productionData';
         const APPROVALS_KEY = 'approvalQueue';
@@ -773,7 +844,151 @@
             document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
         }
 
-        // 설비 QR 코드 처리
+        // 작업자 스캐너 시작
+        function startWorkerScanner() {
+            currentScannerType = 'worker';
+            openScanner();
+        }
+
+        // 설비 스캐너 시작
+        function startEquipmentScanner() {
+            currentScannerType = 'equipment';
+            openScanner();
+        }
+
+        // 작업표준서 스캐너 시작
+        function startStandardScanner() {
+            currentScannerType = 'standard';
+            openScanner();
+        }
+
+        // 스캐너 모달 열기
+        function openScanner() {
+            document.getElementById('scannerModal').classList.add('active');
+            setTimeout(() => {
+                startCamera();
+            }, 100);
+        }
+
+        // 카메라 시작
+        async function startCamera() {
+            try {
+                const video = document.getElementById('scanner');
+                scannerActive = true;
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                
+                video.srcObject = stream;
+                video.play();
+                
+                scanQRCode();
+            } catch (err) {
+                console.error('카메라 접근 실패:', err);
+                alert('카메라 접근 권한이 필요합니다.\n설정에서 카메라 권한을 허용해주세요.');
+                closeScanner();
+            }
+        }
+
+        // QR 코드 스캔
+        async function scanQRCode() {
+            if (!scannerActive) return;
+
+            try {
+                const video = document.getElementById('scanner');
+                if (!video.videoWidth) {
+                    setTimeout(scanQRCode, 100);
+                    return;
+                }
+
+                const result = await codeReader.decodeFromVideoElement(video);
+                
+                if (result) {
+                    const qrData = result.text;
+                    processQRCode(qrData);
+                    closeScanner();
+                } else {
+                    if (scannerActive) {
+                        setTimeout(scanQRCode, 100);
+                    }
+                }
+            } catch (err) {
+                if (scannerActive) {
+                    setTimeout(scanQRCode, 100);
+                }
+            }
+        }
+
+        // QR 코드 처리
+        function processQRCode(data) {
+            try {
+                // JSON 형식인지 확인
+                const parsed = JSON.parse(data);
+                
+                if (currentScannerType === 'worker') {
+                    // 작업자 QR 코드 처리
+                    document.getElementById('workerInput').value = parsed.name || data;
+                } else if (currentScannerType === 'equipment' && parsed.type === 'equipment') {
+                    appState.currentEquipment = parsed.id;
+                    document.getElementById('equipmentInput').value = '';
+                    document.getElementById('equipmentStatus').style.display = 'block';
+                    document.getElementById('equipmentInfo').textContent = `설비 ID: ${parsed.id}`;
+                } else if (currentScannerType === 'standard') {
+                    appState.currentStandard = data;
+                    document.getElementById('standardInput').value = '';
+                    document.getElementById('standardStatus').style.display = 'block';
+                    document.getElementById('standardInfo').textContent = `작업표준서 ID: ${data}`;
+                } else {
+                    // 기본값으로 처리
+                    handleQRAsText(data);
+                }
+            } catch (e) {
+                // JSON 파싱 실패 - 일반 텍스트로 처리
+                handleQRAsText(data);
+            }
+        }
+
+        // QR 코드를 텍스트로 처리
+        function handleQRAsText(data) {
+            if (currentScannerType === 'worker') {
+                document.getElementById('workerInput').value = data;
+            } else if (currentScannerType === 'equipment') {
+                appState.currentEquipment = data;
+                document.getElementById('equipmentStatus').style.display = 'block';
+                document.getElementById('equipmentInfo').textContent = `설비 ID: ${data}`;
+            } else if (currentScannerType === 'standard') {
+                appState.currentStandard = data;
+                document.getElementById('standardStatus').style.display = 'block';
+                document.getElementById('standardInfo').textContent = `작업표준서 ID: ${data}`;
+            }
+        }
+
+        // 스캐너 재개
+        function resumeScanner() {
+            scanQRCode();
+        }
+
+        // 스캐너 종료
+        function closeScanner() {
+            scannerActive = false;
+            const video = document.getElementById('scanner');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            document.getElementById('scannerModal').classList.remove('active');
+            currentScannerType = null;
+        }
+
+        // 작업자 정보 직접 입력 처리 (Enter 키)
+        document.getElementById('workerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                setWorkerName();
+            }
+        });
+
+        // 설비 입력 직접 처리
         document.getElementById('equipmentInput').addEventListener('change', function(e) {
             const value = e.target.value.trim();
             if (value) {
@@ -784,7 +999,7 @@
             }
         });
 
-        // 작업표준서 QR 코드 처리
+        // 작업표준서 입력 직접 처리
         document.getElementById('standardInput').addEventListener('change', function(e) {
             const value = e.target.value.trim();
             if (value) {
@@ -795,7 +1010,7 @@
             }
         });
 
-        // 작업 설정 (초품검사 대기 상태로 등록)
+        // 작업 설정
         function setupWork() {
             if (!appState.currentEquipment || !appState.currentStandard) {
                 alert('설비와 작업표준서를 먼저 스캔하세요');
@@ -809,7 +1024,7 @@
                 quantity: 0,
                 worker: appState.currentWorker,
                 startTime: new Date().toLocaleTimeString('ko-KR'),
-                status: 'waiting', // waiting(대기) → quality-check(품질검사중) → working(작업중) → pending(승인대기) → approved(완료)
+                status: 'waiting',
                 timestamp: new Date().getTime(),
                 qualityCheckData: null,
                 qualityInspector: null
@@ -817,7 +1032,6 @@
 
             appState.jobs.push(job);
 
-            // UI 초기화
             document.getElementById('equipmentStatus').style.display = 'none';
             document.getElementById('standardStatus').style.display = 'none';
             document.getElementById('quantityInput').value = '';
@@ -899,7 +1113,7 @@
 
             const jobIndex = appState.jobs.findIndex(j => j.id === currentQualityCheckJobId);
             if (jobIndex !== -1) {
-                appState.jobs[jobIndex].status = 'working'; // 작업 시작으로 변경
+                appState.jobs[jobIndex].status = 'working';
                 appState.jobs[jobIndex].qualityCheckData = {
                     item1: document.getElementById('qcItem1').value,
                     item2: document.getElementById('qcItem2').value,
@@ -909,7 +1123,6 @@
                 };
                 appState.jobs[jobIndex].qualityInspector = inspector;
 
-                // 대시보드에 "작업 시작" 상태로 표시되도록
                 document.getElementById('workingEquipment').textContent = appState.jobs[jobIndex].equipment;
                 document.getElementById('workingStandard').textContent = appState.jobs[jobIndex].standard;
                 document.getElementById('workingStatus').style.display = 'block';
@@ -922,7 +1135,6 @@
 
         // 작업 완료
         function completeWork() {
-            // 진행 중인 작업 찾기
             const workingJob = appState.jobs.find(j => j.status === 'working');
             if (!workingJob) {
                 alert('먼저 품질검사를 통과한 작업을 선택하세요');
@@ -935,13 +1147,11 @@
                 return;
             }
 
-            // 작업 상태를 완료로 변경
             const jobIndex = appState.jobs.findIndex(j => j.id === workingJob.id);
             if (jobIndex !== -1) {
                 appState.jobs[jobIndex].quantity = parseInt(quantity);
-                appState.jobs[jobIndex].status = 'pending'; // 승인 대기 상태로
+                appState.jobs[jobIndex].status = 'pending';
 
-                // 승인 큐에 추가
                 appState.approvals.push({...appState.jobs[jobIndex]});
 
                 document.getElementById('workingStatus').style.display = 'none';
@@ -977,7 +1187,6 @@
             document.getElementById('pendingCount').textContent = pending;
             document.getElementById('completedCount').textContent = completed;
 
-            // 카드 생성
             const content = document.getElementById('dashboardContent');
             if (appState.jobs.length === 0) {
                 content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div>아직 작업 기록이 없습니다</div>';
@@ -1076,8 +1285,6 @@
             const jobIndex = appState.jobs.findIndex(j => j.id === jobId);
             if (jobIndex !== -1) {
                 appState.jobs[jobIndex].status = 'approved';
-                
-                // 승인 큐에서 제거
                 appState.approvals = appState.approvals.filter(a => a.id !== jobId);
                 
                 saveData();
