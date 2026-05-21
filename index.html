@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>생산 관리 대시보드</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * {
             margin: 0;
@@ -107,7 +106,6 @@
             display: block;
         }
 
-        /* 작업자 탭 */
         .worker-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -218,24 +216,9 @@
             margin-bottom: 15px;
         }
 
-        .status-box.waiting {
-            background: #fff3cd;
-            border-left-color: #ffc107;
-        }
-
-        .status-box.quality-check {
-            background: #cfe2ff;
-            border-left-color: #0d6efd;
-        }
-
         .status-box.working {
             background: #fff3e0;
             border-left-color: #ff9800;
-        }
-
-        .status-box.completed {
-            background: #e8f5e9;
-            border-left-color: #4caf50;
         }
 
         .status-title {
@@ -249,14 +232,12 @@
             color: #666;
         }
 
-        /* 품질검사 탭 */
         .quality-section {
             display: grid;
             grid-template-columns: 1fr;
             gap: 20px;
         }
 
-        /* 대시보드 탭 */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -274,10 +255,6 @@
 
         .dashboard-card.waiting {
             border-top-color: #ffc107;
-        }
-
-        .dashboard-card.quality-check {
-            border-top-color: #0d6efd;
         }
 
         .dashboard-card.working {
@@ -317,11 +294,6 @@
         .card-status.waiting {
             background: #fff3cd;
             color: #856404;
-        }
-
-        .card-status.quality-check {
-            background: #cfe2ff;
-            color: #084298;
         }
 
         .card-status.working {
@@ -410,16 +382,6 @@
             background: #da190b;
         }
 
-        .btn-view {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-view:hover {
-            background: #5568d3;
-        }
-
-        /* 통계 */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -448,7 +410,6 @@
             font-weight: 600;
         }
 
-        /* 모달 */
         .modal {
             display: none;
             position: fixed;
@@ -515,6 +476,18 @@
             border: 2px solid #ddd;
             border-radius: 8px;
             background: #000;
+            display: block;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .scanner-info {
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            margin: 10px 0;
         }
 
         .scanner-controls {
@@ -738,9 +711,10 @@
             <div class="modal-header">📷 QR 코드 스캔</div>
             <div class="modal-body">
                 <p id="scannerTitle">QR 코드를 카메라에 비춰주세요</p>
-                <video id="scanner" style="width: 100%; max-width: 400px; border-radius: 8px;"></video>
+                <video id="scanner" autoplay playsinline></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+                <div class="scanner-info" id="scannerInfo">카메라에 QR 코드 비추기...</div>
                 <div class="scanner-controls">
-                    <button class="btn-primary" id="startBtn" onclick="resumeScanner()">▶️ 시작</button>
                     <button class="btn-secondary" onclick="closeScanner()">닫기</button>
                 </div>
             </div>
@@ -799,27 +773,23 @@
     </div>
 
     <script>
-        // ZXing 설정
-        const codeReader = new ZXing.BrowserQRCodeReader();
         let scannerActive = false;
-        let currentScannerType = null; // 'equipment', 'standard', 또는 'worker'
+        let currentScannerType = null;
+        let stream = null;
 
-        // 로컬스토리지 초기화
         const STORAGE_KEY = 'productionData';
         const APPROVALS_KEY = 'approvalQueue';
 
-        // 초기 데이터
         let appState = {
             currentEquipment: null,
             currentStandard: null,
             currentWorker: 'Worker',
-            jobs: [], // 모든 작업 기록
-            approvals: [] // 승인 대기 중인 작업
+            jobs: [],
+            approvals: []
         };
 
         let currentQualityCheckJobId = null;
 
-        // 데이터 로드
         function loadData() {
             const saved = localStorage.getItem(STORAGE_KEY);
             const approvals = localStorage.getItem(APPROVALS_KEY);
@@ -827,7 +797,6 @@
             if (approvals) appState.approvals = JSON.parse(approvals);
         }
 
-        // 데이터 저장
         function saveData() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(appState.jobs));
             localStorage.setItem(APPROVALS_KEY, JSON.stringify(appState.approvals));
@@ -836,7 +805,6 @@
             updateQualityList();
         }
 
-        // 탭 전환
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -844,25 +812,21 @@
             document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
         }
 
-        // 작업자 스캐너 시작
         function startWorkerScanner() {
             currentScannerType = 'worker';
             openScanner();
         }
 
-        // 설비 스캐너 시작
         function startEquipmentScanner() {
             currentScannerType = 'equipment';
             openScanner();
         }
 
-        // 작업표준서 스캐너 시작
         function startStandardScanner() {
             currentScannerType = 'standard';
             openScanner();
         }
 
-        // 스캐너 모달 열기
         function openScanner() {
             document.getElementById('scannerModal').classList.add('active');
             setTimeout(() => {
@@ -870,20 +834,20 @@
             }, 100);
         }
 
-        // 카메라 시작
         async function startCamera() {
             try {
                 const video = document.getElementById('scanner');
                 scannerActive = true;
                 
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
                 
                 video.srcObject = stream;
-                video.play();
                 
-                scanQRCode();
+                setTimeout(() => {
+                    scanQRCode();
+                }, 500);
             } catch (err) {
                 console.error('카메라 접근 실패:', err);
                 alert('카메라 접근 권한이 필요합니다.\n설정에서 카메라 권한을 허용해주세요.');
@@ -891,65 +855,57 @@
             }
         }
 
-        // QR 코드 스캔
-        async function scanQRCode() {
+        function scanQRCode() {
             if (!scannerActive) return;
 
-            try {
-                const video = document.getElementById('scanner');
-                if (!video.videoWidth) {
-                    setTimeout(scanQRCode, 100);
-                    return;
-                }
+            const video = document.getElementById('scanner');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-                const result = await codeReader.decodeFromVideoElement(video);
-                
-                if (result) {
-                    const qrData = result.text;
-                    processQRCode(qrData);
-                    closeScanner();
-                } else {
-                    if (scannerActive) {
-                        setTimeout(scanQRCode, 100);
-                    }
-                }
-            } catch (err) {
+            if (video.videoWidth === 0) {
+                setTimeout(scanQRCode, 100);
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+            if (code) {
+                processQRCode(code.data);
+                closeScanner();
+            } else {
                 if (scannerActive) {
                     setTimeout(scanQRCode, 100);
                 }
             }
         }
 
-        // QR 코드 처리
         function processQRCode(data) {
             try {
-                // JSON 형식인지 확인
                 const parsed = JSON.parse(data);
                 
                 if (currentScannerType === 'worker') {
-                    // 작업자 QR 코드 처리
                     document.getElementById('workerInput').value = parsed.name || data;
                 } else if (currentScannerType === 'equipment' && parsed.type === 'equipment') {
                     appState.currentEquipment = parsed.id;
-                    document.getElementById('equipmentInput').value = '';
                     document.getElementById('equipmentStatus').style.display = 'block';
                     document.getElementById('equipmentInfo').textContent = `설비 ID: ${parsed.id}`;
                 } else if (currentScannerType === 'standard') {
                     appState.currentStandard = data;
-                    document.getElementById('standardInput').value = '';
                     document.getElementById('standardStatus').style.display = 'block';
                     document.getElementById('standardInfo').textContent = `작업표준서 ID: ${data}`;
                 } else {
-                    // 기본값으로 처리
                     handleQRAsText(data);
                 }
             } catch (e) {
-                // JSON 파싱 실패 - 일반 텍스트로 처리
                 handleQRAsText(data);
             }
         }
 
-        // QR 코드를 텍스트로 처리
         function handleQRAsText(data) {
             if (currentScannerType === 'worker') {
                 document.getElementById('workerInput').value = data;
@@ -964,31 +920,22 @@
             }
         }
 
-        // 스캐너 재개
-        function resumeScanner() {
-            scanQRCode();
-        }
-
-        // 스캐너 종료
         function closeScanner() {
             scannerActive = false;
-            const video = document.getElementById('scanner');
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
             }
             document.getElementById('scannerModal').classList.remove('active');
             currentScannerType = null;
         }
 
-        // 작업자 정보 직접 입력 처리 (Enter 키)
         document.getElementById('workerInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 setWorkerName();
             }
         });
 
-        // 설비 입력 직접 처리
         document.getElementById('equipmentInput').addEventListener('change', function(e) {
             const value = e.target.value.trim();
             if (value) {
@@ -999,7 +946,6 @@
             }
         });
 
-        // 작업표준서 입력 직접 처리
         document.getElementById('standardInput').addEventListener('change', function(e) {
             const value = e.target.value.trim();
             if (value) {
@@ -1010,7 +956,6 @@
             }
         });
 
-        // 작업 설정
         function setupWork() {
             if (!appState.currentEquipment || !appState.currentStandard) {
                 alert('설비와 작업표준서를 먼저 스캔하세요');
@@ -1042,7 +987,6 @@
             alert('작업이 설정되었습니다. 품질검사 담당자의 검사를 기다려주세요.');
         }
 
-        // 품질검사 목록 업데이트
         function updateQualityList() {
             const waitingJobs = appState.jobs.filter(j => j.status === 'waiting');
             const container = document.getElementById('qualityWaitingList');
@@ -1079,7 +1023,6 @@
             `).join('');
         }
 
-        // 품질검사 모달 열기
         function openQualityModal(jobId) {
             const job = appState.jobs.find(j => j.id === jobId);
             if (!job) return;
@@ -1097,13 +1040,11 @@
             document.getElementById('qualityModal').classList.add('active');
         }
 
-        // 품질검사 모달 닫기
         function closeQualityModal() {
             document.getElementById('qualityModal').classList.remove('active');
             currentQualityCheckJobId = null;
         }
 
-        // 품질 승인
         function approveQuality() {
             const inspector = document.getElementById('qcInspector').value.trim();
             if (!inspector) {
@@ -1133,7 +1074,6 @@
             }
         }
 
-        // 작업 완료
         function completeWork() {
             const workingJob = appState.jobs.find(j => j.status === 'working');
             if (!workingJob) {
@@ -1162,7 +1102,6 @@
             }
         }
 
-        // 작업자 이름 설정
         function setWorkerName() {
             const name = document.getElementById('workerInput').value.trim();
             if (name) {
@@ -1173,7 +1112,6 @@
             }
         }
 
-        // 대시보드 업데이트
         function updateDashboard() {
             const total = appState.jobs.filter(j => j.status === 'approved').reduce((sum, j) => sum + j.quantity, 0);
             const waiting = appState.jobs.filter(j => j.status === 'waiting').length;
@@ -1222,23 +1160,10 @@
                             <div class="info-value">${job.qualityInspector || '-'}</div>
                         </div>
                     </div>
-                    ${job.qualityCheckData ? `
-                        <div class="card-info" style="padding-top: 15px; border-top: 1px solid #f0f0f0;">
-                            <div class="info-item">
-                                <div class="info-label">검사항목1</div>
-                                <div class="info-value">${job.qualityCheckData.item1}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">검사항목2</div>
-                                <div class="info-value">${job.qualityCheckData.item2}</div>
-                            </div>
-                        </div>
-                    ` : ''}
                 </div>
             `).join('');
         }
 
-        // 승인 관리 업데이트
         function updateApproval() {
             const content = document.getElementById('approvalContent');
             const pendingApprovals = appState.approvals.filter(a => a.status === 'pending');
@@ -1280,7 +1205,6 @@
             `).join('');
         }
 
-        // 작업 승인
         function approveJob(jobId) {
             const jobIndex = appState.jobs.findIndex(j => j.id === jobId);
             if (jobIndex !== -1) {
@@ -1292,7 +1216,6 @@
             }
         }
 
-        // 작업 반려
         function rejectJob(jobId) {
             const jobIndex = appState.jobs.findIndex(j => j.id === jobId);
             if (jobIndex !== -1) {
@@ -1304,7 +1227,6 @@
             }
         }
 
-        // 현재 시간 업데이트
         function updateTime() {
             const now = new Date();
             document.getElementById('currentTime').textContent = now.toLocaleTimeString('ko-KR');
@@ -1312,7 +1234,6 @@
 
         setInterval(updateTime, 1000);
 
-        // 초기 로드
         loadData();
         updateDashboard();
         updateApproval();
