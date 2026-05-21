@@ -106,7 +106,6 @@
             display: block;
         }
 
-        /* 작업 설정 탭 */
         .setup-section {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -218,7 +217,6 @@
             display: block;
         }
 
-        /* 생산 현황판 */
         .dashboard-board {
             background: white;
             padding: 20px;
@@ -346,7 +344,6 @@
             background: #da190b;
         }
 
-        /* 모달 */
         .modal {
             display: none;
             position: fixed;
@@ -434,18 +431,21 @@
             font-size: 14px;
         }
 
+        .approval-notification {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            color: #2e7d32;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+        }
+
         @media (max-width: 1200px) {
             .setup-section {
                 grid-template-columns: 1fr 1fr;
-            }
-
-            .dashboard-table {
-                font-size: 12px;
-            }
-
-            .dashboard-table th,
-            .dashboard-table td {
-                padding: 8px;
             }
         }
 
@@ -456,15 +456,6 @@
 
             .form-row {
                 grid-template-columns: 1fr;
-            }
-
-            .dashboard-table {
-                font-size: 11px;
-            }
-
-            .dashboard-table th,
-            .dashboard-table td {
-                padding: 6px;
             }
         }
     </style>
@@ -494,6 +485,11 @@
 
         <!-- 작업 설정 탭 -->
         <div id="setup" class="tab-content active">
+            <!-- 승인 알림 -->
+            <div id="approvalNotification" class="approval-notification" style="display:none;">
+                ✅ 초품검사 승인이 났습니다! 작업을 시작하세요!
+            </div>
+
             <div class="setup-section">
                 <div class="setup-box">
                     <h3>👤 작업자 정보</h3>
@@ -732,9 +728,11 @@
         let stream = null;
 
         const STORAGE_KEY = 'productionData';
+        const REFRESH_INTERVAL = 1000; // 1초마다 새로고침
 
         let appState = {
             currentWorker: 'Worker',
+            currentWorkerForSetup: null,
             currentEquipment: null,
             currentStandard: null,
             jobs: [],
@@ -857,7 +855,7 @@
         }
 
         function checkAllInputs() {
-            if (appState.currentEquipment && appState.currentStandard && appState.currentWorker !== 'Worker') {
+            if (appState.currentEquipment && appState.currentStandard && appState.currentWorkerForSetup) {
                 document.getElementById('startButtonContainer').classList.add('show');
             }
         }
@@ -866,6 +864,7 @@
             const name = document.getElementById('workerInput').value.trim();
             if (name) {
                 appState.currentWorker = name;
+                appState.currentWorkerForSetup = name;
                 document.getElementById('workerName').textContent = name;
                 document.getElementById('workerInput').value = '';
                 document.getElementById('workerStatus').innerHTML = '<div class="status-box">✓ 작업자 저장됨</div>';
@@ -908,11 +907,11 @@
             document.getElementById('startButtonContainer').classList.remove('show');
             appState.currentEquipment = null;
             appState.currentStandard = null;
+            appState.currentWorkerForSetup = null;
 
             saveData();
             closeStartWorkPopup();
-            alert('작업이 시작되었습니다!');
-            switchTab('quality');
+            alert('작업이 시작되었습니다! 품질부서의 초품검사 승인을 기다려주세요.');
         }
 
         function updateAllTables() {
@@ -1059,6 +1058,20 @@
                 saveData();
                 closeQualityModal();
                 alert('✅ 양품 승인되었습니다!');
+
+                // 작업자에게 알림 표시 (같은 작업자면)
+                notifyWorker(appState.jobs[jobIndex].worker);
+            }
+        }
+
+        function notifyWorker(workerName) {
+            // 같은 작업자가 현재 로그인되어 있으면 알림 표시
+            if (appState.currentWorker === workerName) {
+                const notifDiv = document.getElementById('approvalNotification');
+                notifDiv.style.display = 'block';
+                setTimeout(() => {
+                    notifDiv.style.display = 'none';
+                }, 5000);
             }
         }
 
@@ -1120,6 +1133,12 @@
         }
 
         setInterval(updateTime, 1000);
+
+        // 주기적으로 데이터 새로고침
+        setInterval(() => {
+            loadData();
+            updateAllTables();
+        }, REFRESH_INTERVAL);
 
         loadData();
         updateAllTables();
